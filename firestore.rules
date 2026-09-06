@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function userDoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    function companyId() { return userDoc().data.companyId; }
+    function role() { return userDoc().data.role; }
+    function active() { return signedIn() && userDoc().data.status != 'suspended'; }
+    function sameCompany(id) { return active() && companyId() == id; }
+    function isOwnerOrAdmin() { return active() && (role() == 'owner' || role() == 'admin'); }
+    function canRead() { return active(); }
+    function canWrite() { return active() && role() in ['owner','admin','manager','staff']; }
+    function canFinanceWrite() { return active() && role() in ['owner','admin','manager','accountant']; }
+    function canDelete() { return active() && role() in ['owner','admin','manager']; }
+
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid && request.resource.data.companyId is string && request.resource.data.role == 'owner';
+      allow update, delete: if signedIn() && request.auth.uid == uid && resource.data.companyId == request.resource.data.companyId && resource.data.role == request.resource.data.role;
+    }
+
+    match /companies/{cid} {
+      allow read: if sameCompany(cid);
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if sameCompany(cid) && isOwnerOrAdmin();
+      allow delete: if sameCompany(cid) && isOwnerOrAdmin();
+
+      match /customers/{id} {
+        allow read: if sameCompany(cid) && canRead();
+        allow create, update: if sameCompany(cid) && canWrite();
+        allow delete: if sameCompany(cid) && canDelete();
+      }
+      match /expenses/{id} {
+        allow read: if sameCompany(cid) && canRead();
+        allow create, update: if sameCompany(cid) && canFinanceWrite();
+        allow delete: if sameCompany(cid) && isOwnerOrAdmin();
+      }
+      match /paymentHistory/{id} {
+        allow read: if sameCompany(cid) && canRead();
+        allow create, update: if sameCompany(cid) && canFinanceWrite();
+        allow delete: if sameCompany(cid) && isOwnerOrAdmin();
+      }
+      match /settings/{id} {
+        allow read: if sameCompany(cid) && canRead();
+        allow create, update: if sameCompany(cid) && isOwnerOrAdmin();
+        allow delete: if false;
+      }
+      match /auditLogs/{id} {
+        allow read: if sameCompany(cid) && role() in ['owner','admin','manager'];
+        allow create: if sameCompany(cid) && canRead();
+        allow update, delete: if false;
+      }
+      match /users/{uid} {
+        allow read: if sameCompany(cid) && role() in ['owner','admin'];
+        allow write: if false;
+      }
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+  }
+}

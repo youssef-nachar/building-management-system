@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
+    <title>Foyer Nohad</title>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+    <!-- ==========================
+         LOGIN PAGE
+    ========================== -->
+    <div id="loginPage" class="login-page">
+        <div class="login-box">
+            <div class="login-logo">🏢</div>
+            <h1>Building Manager</h1>
+            <p>Resident & Finance Management System</p>
+
+            <div class="input-group">
+                <label>Username</label>
+                <input id="loginUser" type="email" placeholder="Enter Email" autocomplete="username">
+            </div>
+
+            <div class="input-group">
+                <label>Password</label>
+                <div class="password-box">
+                    <input id="loginPass" type="password" placeholder="Enter Password" autocomplete="current-password">
+                    <button type="button" class="toggle-password" onclick="togglePassword()">
+                        <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path> <circle cx="12" cy="12" r="3"></circle> </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="login-options">
+                <label class="remember">
+                    <input type="checkbox">
+                    <span>Remember Me</span>
+                </label>
+            </div>
+
+            <button class="login-btn" onclick="login()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+        <polyline points="10 17 15 12 10 7"/>
+        <line x1="15" y1="12" x2="3" y2="12"/>
+    </svg>
+    <span>Sign In</span>
+</button>
+            <div id="loginError"></div>
+
+            <div class="auth-actions">
+                <button type="button" class="auth-link" onclick="registerAccount()">Create Account</button>
+                <button type="button" class="auth-link" onclick="resetPassword()">Forgot Password?</button>
+            </div>
+
+
+            <div class="login-footer">
+                Foyer Nohad
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================
+         MAIN APPLICATION CONTENT
+    ========================== -->
+    <div id="appContent" class="hidden">
+
+        <!-- Header -->
+        <header class="main-header">
+            <div class="brand-title">
+                <span class="brand-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/>
+        <path d="M16 9h2a2 2 0 0 1 2 2v10"/>
+        <path d="M8 7h4"/>
+        <path d="M8 11h4"/>
+        <path d="M8 15h4"/>
+        <path d="M8 19h4"/>
+        <path d="M20 21H2"/>
+    </svg>
+</span>
+                <h1>Foyer Nohad</h1>
+            </div>
+            
+            <button onclick="logout()" class="logout-btn" title="Sign out of your account">
+                <svg class="logout-svg" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Logout</span>
+            </button>
+        </header>
+
+        <!-- Navigation Tabs -->
+<div class="tabs">
+
+    <button class="tab-btn active" onclick="openTab('residents')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5 12 3l9 7.5"/>
+            <path d="M5 9.5V21h14V9.5"/>
+            <path d="M9 21v-6h6v6"/>
+        </svg>
+        <span>Residents</span>
+    </button>
+
+    <button class="tab-btn" onclick="openTab('finance')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="14" rx="2"/>
+            <path d="M3 10h18"/>
+            <path d="M7 15h3"/>
+        </svg>
+        <span>Expenses & Finance</span>
+    </button>
+
+    <button class="tab-btn" onclick="openTab('paidClients')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="8" r="3"/>
+            <path d="M3 21v-2a6 6 0 0 1 12 0v2"/>
+            <path d="M16 11a3 3 0 1 0 0-6"/>
+            <path d="M18 21v-2a5 5 0 0 0-3-4.6"/>
+        </svg>
+        <span>Paid Clients</span>
+    </button>
+
+</div>
+
+        <!-- Dashboard / Residents Page -->
+        <div id="residentsPage">
+            <section class="dashboard">
+                <div class="card" onclick="showKpi('occupied')">
+                    <h3>Occupied</h3>
+                    <span id="occupiedBeds">0</span>
+                </div>
+                <div class="card" onclick="showKpi('available')">
+                    <h3>Available</h3>
+                    <span id="availableBeds">0</span>
+                </div>
+                <div class="card" onclick="showKpi('paid')">
+                    <h3>Paid</h3>
+                    <span id="paidCustomers">0</span>
+                </div>
+                <div class="card" onclick="showKpi('unpaid')">
+                    <h3>Unpaid</h3>
+                    <span id="unpaidCustomers">0</span>
+                </div>
+<div class="card" data-finance-only>
+    <h3>Revenue</h3>
+    <h2 id="revenue">$0</h2>
+</div>
+            </section>
+
+            <section class="top-bar">
+                <div class="search-box">
+                    <input id="searchInput" type="text" placeholder="Search by customer, floor, apartment, room or bed...">
+                </div>
+                <button class="history-btn" onclick="showHistory()">📄 Payment History</button>
+            </section>
+
+            <main id="building"></main>
+        </div>
+
+        <!-- ==========================================
+             ENTERPRISE EXPENSES & FINANCE PAGE
+        ========================================== -->
+        <div id="financePage" style="display:none;">
+            <div class="finance-container paid-enterprise-container">
+
+                <!-- Header Section -->
+                <div class="paid-header">
+                    <div class="paid-title-group">
+                        <div class="status-indicator-dot"></div>
+                        <div>
+                            <h2 style="color:white">Financial Management & Expenses</h2>
+                            <p class="paid-subtitle">Track building operational expenditures, cash flow, and net balance</p>
+                        </div>
+                    </div>
+
+                    <div class="export-actions-group">
+                        <button class="btn-primary-print" id="addExpenseBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"/>
+    <line x1="5" y1="12" x2="19" y2="12"/>
+</svg>
+                            <span>Add New Expense</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Summary Cards -->
+                <div class="paid-kpi-grid">
+                    <div class="paid-kpi-card">
+                        <div class="kpi-icon-wrapper emerald-bg">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3 17 9 11 13 15 21 7"/>
+    <polyline points="14 7 21 7 21 14"/>
+</svg>
+                        </div>
+                        <div class="kpi-details">
+                            <span class="kpi-label">Total Revenue</span>
+                            <h1 id="financeRevenue" class="kpi-value text-emerald">$0</h1>
+                        </div>
+                    </div>
+
+                    <div class="paid-kpi-card">
+                        <div class="kpi-icon-wrapper red-bg">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/>
+    <path d="M9 8h6"/>
+    <path d="M9 12h6"/>
+    <path d="M9 16h3"/>
+</svg>
+                        </div>
+                        <div class="kpi-details">
+                            <span class="kpi-label">Total Expenses</span>
+                            <h1 id="financeExpenses" class="kpi-value text-danger">$0</h1>
+                        </div>
+                    </div>
+
+                    <div class="paid-kpi-card">
+                        <div class="kpi-icon-wrapper blue-bg">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 7H5a3 3 0 0 1 0-6h13a2 2 0 0 1 2 2v16a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V4"/>
+    <path d="M20 12h-4a2 2 0 0 0 0 4h4"/>
+</svg>
+                        </div>
+                        <div class="kpi-details">
+                            <span class="kpi-label">Net Profit / Balance</span>
+                            <h1 id="financeProfit" class="kpi-value">$0</h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters & Search Toolbar -->
+                <div class="paid-filter-toolbar">
+                    <div class="paid-search-input-wrapper">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input
+                            id="expenseSearchInput"
+                            type="text"
+                            placeholder="Search expenses by description or category..."
+                            oninput="filterExpenses()">
+                    </div>
+
+                    <div class="floor-filter-select-wrapper">
+                        <select id="expenseCategoryFilter" onchange="filterExpenses()">
+                            <option value="all">All Categories</option>
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Utilities">Utilities (Electricity/Water)</option>
+                            <option value="Salaries">Staff Salaries</option>
+                            <option value="Cleaning">Cleaning & Supplies</option>
+                            <option value="Other">Other Expenses</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Expenses Data Table -->
+                <div class="paid-table-card">
+                    <table class="paid-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenseTableBody">
+                            <!-- Expense items loaded dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Paid Clients Page -->
+        <div id="paidClientsPage" style="display:none;">
+            <div class="finance-container paid-enterprise-container">
+                <div class="paid-header">
+                    <div class="paid-title-group">
+                        <div class="status-indicator-dot"></div>
+                        <div>
+                            <h2>Paid Clients Directory</h2>
+                            <p class="paid-subtitle">Real-time overview of active tenants with verified monthly settlements</p>
+                        </div>
+                    </div>
+
+                    <div class="export-actions-group">
+                        <button class="btn-secondary-export" onclick="exportPaidToCSV()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <span>Export CSV</span>
+                        </button>
+                        <button class="btn-primary-print" onclick="window.print()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                            <span>Print Report</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="paid-kpi-grid">
+                    <div class="paid-kpi-card">
+                        <div class="kpi-icon-wrapper green-bg">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                        <div class="kpi-details">
+                            <span class="kpi-label">Paid Tenants</span>
+                            <h1 id="paidClientsCount" class="kpi-value">0</h1>
+                        </div>
+                    </div>
+
+                    <div class="paid-kpi-card">
+                        <div class="kpi-icon-wrapper emerald-bg">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        </div>
+                        <div class="kpi-details">
+                            <span class="kpi-label">Collected Revenue</span>
+                            <h1 id="paidClientsTotalRev" class="kpi-value text-emerald">$0</h1>
+                        </div>
+                    </div>
+
+                    <div class="paid-kpi-card">
+                        <div class="kpi-icon-wrapper blue-bg">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </div>
+                        <div class="kpi-details">
+                            <span class="kpi-label">Settlement Rate</span>
+                            <h1 id="paidRatePercentage" class="kpi-value">0%</h1>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="paid-filter-toolbar">
+                    <div class="paid-search-input-wrapper">
+                        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input id="paidSearchInput" type="text" placeholder="Search by tenant name, phone, floor, or room..." oninput="filterPaidClients()">
+                    </div>
+
+                    <div class="floor-filter-select-wrapper">
+                        <select id="paidFloorFilter" onchange="filterPaidClients()">
+                            <option value="all">All Floors</option>
+                            <option value="1">Floor 1</option>
+                            <option value="2">Floor 2</option>
+                            <option value="3">Floor 3</option>
+                            <option value="4">Floor 4</option>
+                            <option value="5">Floor 5</option>
+                            <option value="6">Floor 6</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="paid-table-card">
+                    <table class="paid-table">
+                        <thead>
+                            <tr>
+                                <th>Client Details</th>
+                                <th>Contact Phone</th>
+                                <th>Parent Contact</th>
+                                <th>Location</th>
+                                <th>Bed No.</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paidClientsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================= -->
+        <!-- MODALS                    -->
+        <!-- ========================= -->
+
+        <!-- Add Customer Modal -->
+        <div id="customerModal" class="modal">
+            <div class="modal-content">
+                <h2>Add Customer</h2>
+                <input type="text" id="customerName" maxlength="120" placeholder="Customer Name">
+                <input type="text" id="customerPhone" maxlength="40" placeholder="Phone Number">
+                <input type="text" id="customerParentPhone" maxlength="40" placeholder="Parent Phone Number">
+                <input type="file" id="customerIdImage" accept="image/jpeg,image/png,image/webp">
+                <button id="saveCustomer">Save</button>
+                <button id="cancelCustomer">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Edit Customer Modal -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <h2>Edit Customer</h2>
+                <input type="text" id="editName" maxlength="120" placeholder="Customer Name">
+                <input type="text" id="editPhone" maxlength="40" placeholder="Phone Number">
+                <input type="text" id="editParentPhone" maxlength="40" placeholder="Parent Phone Number">
+                <select id="editPaid">
+                    <option value="Paid">Paid</option>
+                    <option value="Not Paid">Not Paid</option>
+                </select>
+                <button id="updateCustomer">Update</button>
+                <button id="checkoutCustomer">Check Out</button>
+                <button id="cancelEdit">Cancel</button>
+            </div>
+        </div>
+
+        <!-- KPI Modal -->
+        <div id="kpiModal" class="modal">
+            <div class="modal-content">
+                <h2 id="kpiTitle">Details</h2>
+                <div id="kpiList"></div>
+                <button onclick="closeKpi()">Close</button>
+            </div>
+        </div>
+
+        <!-- Payment History Modal -->
+        <div id="historyModal" class="modal">
+            <div class="history-box">
+                <div class="history-header">
+                    <div>
+                        <h2>💳 Payment History</h2>
+                        <small>All customer payment records</small>
+                    </div>
+                    <button class="close-btn" onclick="closeHistory()">✕</button>
+                </div>
+                <div class="history-toolbar">
+                    <input type="text" id="historySearch" placeholder="🔍 Search customer...">
+                </div>
+                <div class="history-table-container">
+                    <table class="history-table">
+                        <tbody id="historyContainer"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirm Modal -->
+        <div id="confirmModal" class="modal">
+            <div class="modal-content confirm-box">
+                <h2>⚠️ Confirmation</h2>
+                <p id="confirmText">Are you sure you want to change this customer to Unpaid?</p>
+                <div class="confirm-buttons">
+                    <button id="confirmCancel" class="cancel-btn">Cancel</button>
+                    <button id="confirmOk" class="danger-btn">Yes, Change</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Professional Add Expense Modal -->
+        <div id="expenseModal" class="modal">
+            <div class="modal-content professional-modal">
+                <div class="modal-header-custom">
+                    <h3>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="8" y1="13" x2="16" y2="13"/>
+        <line x1="8" y1="17" x2="13" y2="17"/>
+    </svg>
+    Add New Expense Entry
+</h3>
+                    <span class="close-modal-x" onclick="closeExpenseModal()">&times;</span>
+                </div>
+                <form id="expenseForm" onsubmit="event.preventDefault();">
+                    <div class="form-group-custom">
+                        <label for="expenseCategory">Expense Category</label>
+                        <select id="expenseCategory" required>
+                            <option value="" disabled selected>Select category...</option>
+                            <option value="Maintenance">Maintenance & Repairs</option>
+                            <option value="Utilities">Utilities (Electricity, Water, Internet)</option>
+                            <option value="Salaries">Staff Salaries & Wages</option>
+                            <option value="Cleaning">Cleaning Services & Supplies</option>
+                            <option value="Other">Other Expenses</option>
+                        </select>
+                    </div>
+                    <div class="form-group-custom">
+                        <label for="expenseDescription">Description / Vendor Name</label>
+                        <input id="expenseDescription" type="text" maxlength="250" placeholder="e.g. Generator repair service" required>
+                    </div>
+                    <div class="form-row-custom">
+                        <div class="form-group-custom">
+                            <label for="expenseAmount">Amount ($)</label>
+                            <input id="expenseAmount" type="number" step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                        <div class="form-group-custom">
+                            <label for="expenseDate">Expense Date</label>
+                            <input id="expenseDate" type="date" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer-custom">
+                        <button type="button" class="btn-cancel" id="cancelExpense">Cancel</button>
+                        <button type="button" class="btn-save" id="saveExpense">Save Expense Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>     

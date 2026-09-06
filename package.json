@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function myUser() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function role() { return myUser().role; }
+    function myCompany() { return myUser().companyId; }
+    function active() { return signedIn() && myUser().status == 'active'; }
+    function admin() { return active() && role() in ['owner','admin']; }
+    function canWrite() { return active() && role() in ['owner','admin','manager','staff']; }
+    function canFinance() { return active() && role() in ['owner','admin','manager','accountant']; }
+    function sameCompany(cid) { return active() && cid == myCompany(); }
+    match /companies/{companyId} {
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && request.resource.data.status == 'active';
+      allow read: if sameCompany(companyId);
+      allow update: if sameCompany(companyId) && admin();
+      allow delete: if false;
+      match /customers/{customerId} {
+        allow read: if sameCompany(companyId);
+        allow create, update: if sameCompany(companyId) && canWrite();
+        allow delete: if sameCompany(companyId) && admin();
+      }
+      match /expenses/{expenseId} {
+        allow read: if sameCompany(companyId) && canFinance();
+        allow create, update: if sameCompany(companyId) && canFinance();
+        allow delete: if sameCompany(companyId) && admin();
+      }
+      match /paymentHistory/{historyId} {
+        allow read: if sameCompany(companyId) && canFinance();
+        allow create, update: if sameCompany(companyId) && canFinance();
+        allow delete: if sameCompany(companyId) && admin();
+      }
+      match /settings/{settingId} {
+        allow read: if sameCompany(companyId);
+        allow create, update: if sameCompany(companyId) && admin();
+        allow delete: if false;
+      }
+    }
+    match /users/{uid} {
+      allow read: if signedIn() && (uid == request.auth.uid || (active() && resource.data.companyId == myCompany() && role() in ['owner','admin']));
+      allow create: if signedIn() && uid == request.auth.uid && request.resource.data.companyId is string && request.resource.data.role == 'owner' && request.resource.data.status == 'active' && getAfter(/databases/$(database)/documents/companies/$(request.resource.data.companyId)).data.ownerUid == request.auth.uid;
+      allow update: if signedIn() && ((uid == request.auth.uid && resource.data.companyId == request.resource.data.companyId && resource.data.role == request.resource.data.role && resource.data.status == request.resource.data.status) || (admin() && resource.data.companyId == myCompany() && request.resource.data.companyId == myCompany() && request.resource.data.uid == uid && request.resource.data.role in ['owner','admin','manager','staff','accountant','viewer']));
+      allow delete: if false;
+    }
+  }
+}
