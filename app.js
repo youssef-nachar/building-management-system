@@ -1,17 +1,8 @@
 /*
  * FOYER NOHAD — Firebase Edition
- * Role-Based Access Version
- *
- * ROLES:
- * owner  = Full access
- * admin  = Full access
- * staff  = Residents + Expenses + Paid Clients
- *
- * STAFF MUST NOT SEE:
- * - Revenue
- * - Profit
- * - Total Revenue
- * - Payment History
+ * ---------------------------------------------------------
+ * User Management + Custom Permissions
+ * ---------------------------------------------------------
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -44,6 +35,7 @@ import {
     onSnapshot,
     query,
     orderBy,
+    where,
     writeBatch,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
@@ -71,6 +63,11 @@ const firebaseConfig = {
     measurementId: "G-FC5X4P9YTZ"
 };
 
+
+/* =========================================================
+   APP CHECK
+   ========================================================= */
+
 const APP_CHECK_SITE_KEY =
     "YOUR_RECAPTCHA_ENTERPRISE_SITE_KEY";
 
@@ -85,6 +82,11 @@ let auth;
 let db;
 let storage;
 let appCheck;
+
+
+/* =========================================================
+   GLOBAL USER STATE
+   ========================================================= */
 
 let currentRole = null;
 let currentCompanyId = null;
@@ -111,30 +113,26 @@ if (firebaseReady) {
         APP_CHECK_SITE_KEY !==
         "YOUR_RECAPTCHA_ENTERPRISE_SITE_KEY"
     ) {
-
-        appCheck = initializeAppCheck(
-            firebaseApp,
-            {
-                provider:
-                    new ReCaptchaEnterpriseProvider(
-                        APP_CHECK_SITE_KEY
-                    ),
-
-                isTokenAutoRefreshEnabled: true
-            }
-        );
+        appCheck = initializeAppCheck(firebaseApp, {
+            provider:
+                new ReCaptchaEnterpriseProvider(
+                    APP_CHECK_SITE_KEY
+                ),
+            isTokenAutoRefreshEnabled: true
+        });
     }
 
 } else {
 
     console.warn(
-        "Firebase is not configured."
+        "Firebase is not configured. Paste your Firebase Web App config in firebaseConfig."
     );
+
 }
 
 
 /* =========================================================
-   CONFIG
+   CONFIG & STATE
    ========================================================= */
 
 const building =
@@ -146,17 +144,10 @@ const rooms = 3;
 const beds = 2;
 
 const totalBeds =
-    floors *
-    apartments *
-    rooms *
-    beds;
+    floors * apartments * rooms * beds;
 
 const MONTHLY_RENT = 235;
 
-
-/* =========================================================
-   STATE
-   ========================================================= */
 
 let customers =
     new Array(totalBeds).fill(null);
@@ -174,7 +165,7 @@ let dataLoaded = false;
 
 
 /* =========================================================
-   DOM
+   DOM REFERENCES
    ========================================================= */
 
 const modal =
@@ -229,13 +220,12 @@ const $ = id =>
 
 
 /* =========================================================
-   ERROR HANDLING
+   ERROR HANDLER
    ========================================================= */
 
 function firebaseErrorMessage(error) {
 
-    const code =
-        error?.code || "";
+    const code = error?.code || "";
 
     const map = {
 
@@ -272,11 +262,14 @@ function firebaseErrorMessage(error) {
         "auth/user-disabled":
             "This account has been disabled by an administrator.",
 
+        "auth/quota-exceeded":
+            "Firebase email sending quota has been exceeded.",
+
         "auth/requires-recent-login":
             "Please sign in again and retry.",
 
         "permission-denied":
-            "Firebase permission denied. Check Firestore rules.",
+            "Firebase permission denied. Check Firestore/Storage rules.",
 
         "storage/unauthorized":
             "Storage permission denied. Check Storage rules."
@@ -320,7 +313,6 @@ function requireCompany() {
     requireFirebase();
 
     if (!currentCompanyId) {
-
         throw new Error(
             "No company is assigned to this account."
         );
@@ -340,17 +332,12 @@ function requireRole(...allowedRoles) {
         !currentRole ||
         !allowedRoles.includes(currentRole)
     ) {
-
         throw new Error(
             "You do not have permission to perform this action."
         );
     }
 }
 
-
-/* =========================================================
-   COMPANY REFERENCES
-   ========================================================= */
 
 function companyCollection(name) {
 
@@ -387,10 +374,6 @@ function companyStoragePath(...parts) {
 }
 
 
-/* =========================================================
-   ROLE SYSTEM
-   ========================================================= */
-
 function isAdminRole() {
 
     return [
@@ -400,140 +383,186 @@ function isAdminRole() {
 }
 
 
-function hasPermission(permission) {
+/* =========================================================
+   ROLE DEFAULT PERMISSIONS
+   ========================================================= */
 
-    const permissions = {
+function getRoleDefaultPermissions(role) {
 
-        /* -------------------------
-           CUSTOMERS
-        ------------------------- */
+    const defaults = {
 
-        "customers.read": [
-            "owner",
-            "admin",
-            "staff"
-        ],
+        owner: {
 
-        "customers.write": [
-            "owner",
-            "admin",
-            "staff"
-        ],
+            "customers.read": true,
+            "customers.write": true,
+            "customers.delete": true,
 
-        "customers.delete": [
-            "owner",
-            "admin"
-        ],
+            "expenses.read": true,
+            "expenses.write": true,
+            "expenses.delete": true,
 
+            "revenue.read": true,
+            "profit.read": true,
 
-        /* -------------------------
-           EXPENSES
-        ------------------------- */
+            "paymentHistory.read": true,
+            "paymentHistory.write": true,
 
-        "expenses.read": [
-            "owner",
-            "admin",
-            "staff"
-        ],
-
-        "expenses.write": [
-            "owner",
-            "admin",
-            "staff"
-        ],
-
-        "expenses.delete": [
-            "owner",
-            "admin"
-        ],
+            "users.manage": true,
+            "reports.read": true
+        },
 
 
-        /* -------------------------
-           REVENUE
-        ------------------------- */
+        admin: {
 
-        "revenue.read": [
-            "owner",
-            "admin"
-        ],
+            "customers.read": true,
+            "customers.write": true,
+            "customers.delete": true,
 
-        "revenue.write": [
-            "owner",
-            "admin"
-        ],
+            "expenses.read": true,
+            "expenses.write": true,
+            "expenses.delete": true,
 
+            "revenue.read": true,
+            "profit.read": true,
 
-        /* -------------------------
-           FINANCE
-        ------------------------- */
+            "paymentHistory.read": true,
+            "paymentHistory.write": true,
 
-        "finance.read": [
-            "owner",
-            "admin",
-            "staff"
-        ],
-
-        "finance.write": [
-            "owner",
-            "admin",
-            "staff"
-        ],
-
-        "finance.delete": [
-            "owner",
-            "admin"
-        ],
+            "users.manage": true,
+            "reports.read": true
+        },
 
 
-        /* -------------------------
-           PAYMENT HISTORY
-        ------------------------- */
+        manager: {
 
-        "paymentHistory.read": [
-            "owner",
-            "admin"
-        ],
+            "customers.read": true,
+            "customers.write": true,
+            "customers.delete": true,
 
-        "paymentHistory.write": [
-            "owner",
-            "admin"
-        ],
+            "expenses.read": true,
+            "expenses.write": true,
+            "expenses.delete": false,
 
+            "revenue.read": false,
+            "profit.read": false,
 
-        /* -------------------------
-           SETTINGS
-        ------------------------- */
+            "paymentHistory.read": false,
+            "paymentHistory.write": false,
 
-        "settings.write": [
-            "owner",
-            "admin"
-        ],
+            "users.manage": false,
+            "reports.read": true
+        },
 
 
-        /* -------------------------
-           USERS
-        ------------------------- */
+        staff: {
 
-        "users.manage": [
-            "owner",
-            "admin"
-        ],
+            "customers.read": true,
+            "customers.write": true,
+            "customers.delete": false,
+
+            "expenses.read": true,
+            "expenses.write": true,
+            "expenses.delete": false,
+
+            "revenue.read": false,
+            "profit.read": false,
+
+            "paymentHistory.read": false,
+            "paymentHistory.write": false,
+
+            "users.manage": false,
+            "reports.read": true
+        },
 
 
-        /* -------------------------
-           REPORTS
-        ------------------------- */
+        accountant: {
 
-        "reports.read": [
-            "owner",
-            "admin"
-        ]
+            "customers.read": true,
+            "customers.write": false,
+            "customers.delete": false,
+
+            "expenses.read": true,
+            "expenses.write": true,
+            "expenses.delete": false,
+
+            "revenue.read": false,
+            "profit.read": false,
+
+            "paymentHistory.read": false,
+            "paymentHistory.write": false,
+
+            "users.manage": false,
+            "reports.read": true
+        },
+
+
+        viewer: {
+
+            "customers.read": true,
+            "customers.write": false,
+            "customers.delete": false,
+
+            "expenses.read": false,
+            "expenses.write": false,
+            "expenses.delete": false,
+
+            "revenue.read": false,
+            "profit.read": false,
+
+            "paymentHistory.read": false,
+            "paymentHistory.write": false,
+
+            "users.manage": false,
+            "reports.read": true
+        }
+
     };
 
+    return {
+        ...(defaults[role] || defaults.viewer)
+    };
+}
+
+
+/* =========================================================
+   CUSTOM PERMISSIONS
+   ========================================================= */
+
+function hasPermission(permission) {
+
+    if (!currentRole) {
+        return false;
+    }
+
+    /*
+     * Owner and Admin always have full access.
+     */
+    if (isAdminRole()) {
+        return true;
+    }
+
+    /*
+     * Custom permission assigned to this user
+     * overrides the role default.
+     */
+    const custom =
+        currentUserProfile?.permissions;
+
+    if (
+        custom &&
+        Object.prototype.hasOwnProperty.call(
+            custom,
+            permission
+        )
+    ) {
+        return custom[permission] === true;
+    }
 
     return (
-        permissions[permission] || []
-    ).includes(currentRole);
+        getRoleDefaultPermissions(
+            currentRole
+        )[permission] === true
+    );
 }
 
 
@@ -566,60 +595,8 @@ function canAccessExpenses() {
 }
 
 
-function canManageExpenses() {
-
-    return hasPermission(
-        "expenses.write"
-    );
-}
-
-
-function canDeleteExpenses() {
-
-    return hasPermission(
-        "expenses.delete"
-    );
-}
-
-
-function canSeePaymentHistory() {
-
-    return hasPermission(
-        "paymentHistory.read"
-    );
-}
-
-
 /* =========================================================
-   UI HELPERS
-   ========================================================= */
-
-function hideElement(id) {
-
-    const el = $(id);
-
-    if (el) {
-        el.style.display = "none";
-    }
-}
-
-
-function showElement(
-    id,
-    displayValue = ""
-) {
-
-    const el = $(id);
-
-    if (el) {
-        el.style.display =
-            displayValue;
-    }
-}
-
-
-/* =========================================================
-   LOAD USER ROLE
+   LOAD CURRENT USER PROFILE
    ========================================================= */
 
 async function loadCurrentUserRole(user) {
@@ -676,33 +653,29 @@ async function loadCurrentUserRole(user) {
         String(profile.companyId);
 
     currentUserProfile = {
+
         uid: user.uid,
-        ...profile
+
+        ...profile,
+
+        permissions:
+            profile.permissions ||
+            getRoleDefaultPermissions(
+                profile.role
+            )
     };
 }
 
 
 /* =========================================================
-   ROLE UI
+   APPLY ROLE UI
    ========================================================= */
 
 function applyRoleUI() {
 
-    const isAdmin =
-        isAdminRole();
-
-    const seesRevenue =
-        canSeeRevenue();
-
-    const seesExpenses =
-        canAccessExpenses();
-
-    const seesHistory =
-        canSeePaymentHistory();
-
-
-    /* ADMIN ONLY */
-
+    /*
+     * Admin / Owner only
+     */
     document
         .querySelectorAll(
             "[data-admin-only]"
@@ -710,51 +683,47 @@ function applyRoleUI() {
         .forEach(el => {
 
             el.style.display =
-                isAdmin ? "" : "none";
+                isAdminRole()
+                    ? ""
+                    : "none";
         });
 
 
-    /* REVENUE ONLY */
-
+    /*
+     * Expenses access
+     */
     document
         .querySelectorAll(
-            "[data-revenue-only]"
+            "[data-finance-only], [data-expenses-only]"
         )
         .forEach(el => {
 
             el.style.display =
-                seesRevenue ? "" : "none";
+                canAccessExpenses()
+                    ? ""
+                    : "none";
         });
 
 
-    /* FINANCE */
-
+    /*
+     * Revenue access
+     */
     document
         .querySelectorAll(
-            "[data-finance-only]"
+            "[data-revenue-only], [data-paid-revenue-only]"
         )
         .forEach(el => {
 
             el.style.display =
-                seesExpenses ? "" : "none";
+                canSeeRevenue()
+                    ? ""
+                    : "none";
         });
 
 
-    /* EXPENSES */
-
-    document
-        .querySelectorAll(
-            "[data-expenses-only]"
-        )
-        .forEach(el => {
-
-            el.style.display =
-                seesExpenses ? "" : "none";
-        });
-
-
-    /* PAYMENT HISTORY */
-
+    /*
+     * Payment history
+     */
     document
         .querySelectorAll(
             "[data-payment-history-only]"
@@ -762,54 +731,17 @@ function applyRoleUI() {
         .forEach(el => {
 
             el.style.display =
-                seesHistory ? "" : "none";
+                hasPermission(
+                    "paymentHistory.read"
+                )
+                    ? ""
+                    : "none";
         });
 
 
-    /* PAID CLIENT REVENUE */
-
-    document
-        .querySelectorAll(
-            "[data-paid-revenue-only]"
-        )
-        .forEach(el => {
-
-            el.style.display =
-                seesRevenue ? "" : "none";
-        });
-
-
-    /* STAFF MUST NOT SEE REVENUE */
-
-    if (!seesRevenue) {
-
-        [
-            "revenue",
-            "financeRevenue",
-            "financeProfit",
-            "paidClientsTotalRev",
-            "financeRevenueCard",
-            "financeProfitCard",
-            "revenueCard",
-            "paidClientsRevenueCard"
-        ].forEach(hideElement);
-
-    } else {
-
-        showElement("revenue");
-        showElement("financeRevenue");
-        showElement("financeProfit");
-        showElement("paidClientsTotalRev");
-
-        showElement("financeRevenueCard");
-        showElement("financeProfitCard");
-        showElement("revenueCard");
-        showElement("paidClientsRevenueCard");
-    }
-
-
-    /* EXPENSE WRITE */
-
+    /*
+     * Add expense
+     */
     document
         .querySelectorAll(
             "[data-expense-write-only]"
@@ -817,14 +749,17 @@ function applyRoleUI() {
         .forEach(el => {
 
             el.style.display =
-                canManageExpenses()
+                hasPermission(
+                    "expenses.write"
+                )
                     ? ""
                     : "none";
         });
 
 
-    /* EXPENSE DELETE */
-
+    /*
+     * Delete expense
+     */
     document
         .querySelectorAll(
             "[data-expense-delete-only]"
@@ -832,15 +767,43 @@ function applyRoleUI() {
         .forEach(el => {
 
             el.style.display =
-                canDeleteExpenses()
+                hasPermission(
+                    "expenses.delete"
+                )
                     ? ""
                     : "none";
         });
+
+
+    /*
+     * Explicit finance elements
+     */
+    [
+        "financeRevenue",
+        "financeRevenueCard",
+        "financeProfit",
+        "financeProfitCard",
+        "revenue",
+        "revenueCard",
+        "paidClientsTotalRev",
+        "paidClientsRevenueCard"
+    ].forEach(id => {
+
+        const el = $(id);
+
+        if (el) {
+
+            el.style.display =
+                canSeeRevenue()
+                    ? ""
+                    : "none";
+        }
+    });
 }
 
 
 /* =========================================================
-   GENERAL HELPERS
+   UTILITIES
    ========================================================= */
 
 function formatCurrency(amount) {
@@ -860,11 +823,31 @@ function formatCurrency(amount) {
 function escapeHTML(value) {
 
     return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
 }
 
 
@@ -915,8 +898,9 @@ function getMonthKey(
 
 function getStayDays(dateString) {
 
-    if (!dateString)
+    if (!dateString) {
         return "-";
+    }
 
     const start =
         new Date(dateString);
@@ -932,9 +916,10 @@ function getStayDays(dateString) {
     return Math.max(
         0,
         Math.floor(
-            (Date.now() -
-                start.getTime()) /
-            86400000
+            (
+                Date.now() -
+                start.getTime()
+            ) / 86400000
         )
     );
 }
@@ -992,7 +977,9 @@ for (
 ) {
 
     const floorDiv =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     floorDiv.className =
         "floor";
@@ -1002,7 +989,9 @@ for (
 
 
     const apartmentContainer =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     apartmentContainer.className =
         "apartments";
@@ -1015,7 +1004,9 @@ for (
     ) {
 
         const apartmentDiv =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
         apartmentDiv.className =
             "apartment";
@@ -1031,7 +1022,9 @@ for (
         ) {
 
             const roomDiv =
-                document.createElement("div");
+                document.createElement(
+                    "div"
+                );
 
             roomDiv.className =
                 "room";
@@ -1064,10 +1057,11 @@ for (
                     `Bed ${bed}`;
 
 
-                button.onclick = () =>
-                    openCustomerForBed(
-                        button
-                    );
+                button.onclick =
+                    () =>
+                        openCustomerForBed(
+                            button
+                        );
 
 
                 button.oncontextmenu =
@@ -1107,6 +1101,7 @@ for (
 
 
     if (building) {
+
         building.appendChild(
             floorDiv
         );
@@ -1193,8 +1188,9 @@ async function login() {
             ".login-btn"
         );
 
-    if (button)
+    if (button) {
         button.disabled = true;
+    }
 
 
     $("loginError").innerText =
@@ -1242,11 +1238,16 @@ async function login() {
 
     } finally {
 
-        if (button)
+        if (button) {
             button.disabled = false;
+        }
     }
 }
 
+
+/* =========================================================
+   PUBLIC REGISTER
+   ========================================================= */
 
 async function registerAccount() {
 
@@ -1321,7 +1322,7 @@ async function registerAccount() {
 
 
         $("loginError").innerText =
-            "✅ Account created successfully. A company owner must assign your company and role before you can enter the system.";
+            "✅ Account created successfully. You can sign in now. A company owner must assign your company and role before you can enter the system.";
 
     } catch (error) {
 
@@ -1344,6 +1345,10 @@ async function registerAccount() {
     }
 }
 
+
+/* =========================================================
+   RESET PASSWORD
+   ========================================================= */
 
 async function resetPassword() {
 
@@ -1381,7 +1386,7 @@ async function resetPassword() {
 
 
         $("loginError").innerText =
-            "📩 Password reset email sent. Check your Inbox/Spam.";
+            "📩 If the account is eligible, a password reset email has been sent. Check your Inbox/Spam.";
 
     } catch (error) {
 
@@ -1394,6 +1399,10 @@ async function resetPassword() {
     }
 }
 
+
+/* =========================================================
+   SHOW MAIN APP
+   ========================================================= */
 
 function showMainApp() {
 
@@ -1424,9 +1433,15 @@ function showMainApp() {
 
     applyRoleUI();
 
-    openTab("residents");
+    openTab(
+        "residents"
+    );
 }
 
+
+/* =========================================================
+   LOGOUT
+   ========================================================= */
 
 function logout() {
 
@@ -1436,11 +1451,19 @@ function logout() {
 
             try {
 
-                await signOut(auth);
+                await signOut(
+                    auth
+                );
 
-                currentRole = null;
-                currentCompanyId = null;
-                currentUserProfile = null;
+                currentRole =
+                    null;
+
+                currentCompanyId =
+                    null;
+
+                currentUserProfile =
+                    null;
+
 
                 imageObjectUrls.forEach(
                     url =>
@@ -1464,17 +1487,33 @@ function logout() {
 }
 
 
+/* =========================================================
+   AUTH CHECK
+   ========================================================= */
+
 function checkAuthOnLoad() {
 
     if (!firebaseReady) {
 
-        if ($("loginPage"))
-            $("loginPage").style.display =
-                "flex";
+        const loginPage =
+            $("loginPage");
 
-        if ($("appContent"))
-            $("appContent").style.display =
+        const appContent =
+            $("appContent");
+
+
+        if (loginPage) {
+
+            loginPage.style.display =
+                "flex";
+        }
+
+
+        if (appContent) {
+
+            appContent.style.display =
                 "none";
+        }
 
         return;
     }
@@ -1498,45 +1537,95 @@ function checkAuthOnLoad() {
 
                 } catch (error) {
 
-                    currentRole = null;
+                    currentRole =
+                        null;
 
-                    console.error(error);
+                    currentCompanyId =
+                        null;
 
-                    if ($("loginPage"))
-                        $("loginPage").style.display =
+                    currentUserProfile =
+                        null;
+
+
+                    console.error(
+                        error
+                    );
+
+
+                    const loginPage =
+                        $("loginPage");
+
+                    const appContent =
+                        $("appContent");
+
+
+                    if (loginPage) {
+
+                        loginPage.style.display =
                             "flex";
+                    }
 
-                    if ($("appContent"))
-                        $("appContent").style.display =
+
+                    if (appContent) {
+
+                        appContent.style.display =
                             "none";
+                    }
 
-                    if ($("loginError"))
+
+                    if ($("loginError")) {
+
                         $("loginError").innerText =
                             firebaseErrorMessage(
                                 error
                             );
+                    }
+
                 }
 
             } else {
 
-                if (unsubscribeCustomers)
+                if (unsubscribeCustomers) {
                     unsubscribeCustomers();
+                    unsubscribeCustomers =
+                        null;
+                }
 
-                if (unsubscribeExpenses)
+                if (unsubscribeExpenses) {
                     unsubscribeExpenses();
+                    unsubscribeExpenses =
+                        null;
+                }
 
-                if ($("loginPage"))
-                    $("loginPage").style.display =
+
+                const loginPage =
+                    $("loginPage");
+
+                const appContent =
+                    $("appContent");
+
+
+                if (loginPage) {
+
+                    loginPage.style.display =
                         "flex";
+                }
 
-                if ($("appContent"))
-                    $("appContent").style.display =
+
+                if (appContent) {
+
+                    appContent.style.display =
                         "none";
+                }
             }
         }
     );
 }
 
+
+/* =========================================================
+   PASSWORD TOGGLE
+   ========================================================= */
 
 function togglePassword() {
 
@@ -1547,29 +1636,43 @@ function togglePassword() {
         $("eyeIcon");
 
 
-    if (input.type === "password") {
+    if (!input) return;
 
-        input.type = "text";
 
-        icon.classList.replace(
-            "fa-eye",
-            "fa-eye-slash"
-        );
+    if (
+        input.type ===
+        "password"
+    ) {
+
+        input.type =
+            "text";
+
+        if (icon) {
+
+            icon.classList.replace(
+                "fa-eye",
+                "fa-eye-slash"
+            );
+        }
 
     } else {
 
-        input.type = "password";
+        input.type =
+            "password";
 
-        icon.classList.replace(
-            "fa-eye-slash",
-            "fa-eye"
-        );
+        if (icon) {
+
+            icon.classList.replace(
+                "fa-eye-slash",
+                "fa-eye"
+            );
+        }
     }
 }
 
 
 /* =========================================================
-   REAL-TIME FIRESTORE
+   REAL-TIME FIRESTORE DATA
    ========================================================= */
 
 async function startRealtimeData() {
@@ -1577,23 +1680,23 @@ async function startRealtimeData() {
     requireFirebase();
 
 
-    /* Stop old listeners */
-
     if (unsubscribeCustomers) {
+
         unsubscribeCustomers();
-        unsubscribeCustomers = null;
+
+        unsubscribeCustomers =
+            null;
     }
 
 
     if (unsubscribeExpenses) {
+
         unsubscribeExpenses();
-        unsubscribeExpenses = null;
+
+        unsubscribeExpenses =
+            null;
     }
 
-
-    /* =====================================================
-       CUSTOMERS
-       ===================================================== */
 
     const initialCustomers =
         await getDocs(
@@ -1602,8 +1705,9 @@ async function startRealtimeData() {
 
 
     customers =
-        new Array(totalBeds)
-            .fill(null);
+        new Array(
+            totalBeds
+        ).fill(null);
 
 
     initialCustomers.forEach(
@@ -1612,18 +1716,22 @@ async function startRealtimeData() {
             const data =
                 snap.data();
 
-            const index =
-                Number(data.index);
+            const i =
+                Number(
+                    data.index
+                );
 
 
             if (
-                Number.isInteger(index) &&
-                index >= 0 &&
-                index < totalBeds
+                Number.isInteger(i) &&
+                i >= 0 &&
+                i < totalBeds
             ) {
 
-                customers[index] = {
+                customers[i] = {
+
                     id: snap.id,
+
                     ...data
                 };
             }
@@ -1631,7 +1739,9 @@ async function startRealtimeData() {
     );
 
 
-    dataLoaded = true;
+    dataLoaded =
+        true;
+
 
     loadCustomers();
 
@@ -1640,13 +1750,15 @@ async function startRealtimeData() {
 
     unsubscribeCustomers =
         onSnapshot(
+
             customerCollection(),
 
             snapshot => {
 
                 customers =
-                    new Array(totalBeds)
-                        .fill(null);
+                    new Array(
+                        totalBeds
+                    ).fill(null);
 
 
                 snapshot.forEach(
@@ -1655,20 +1767,22 @@ async function startRealtimeData() {
                         const data =
                             snap.data();
 
-                        const index =
+                        const i =
                             Number(
                                 data.index
                             );
 
 
                         if (
-                            Number.isInteger(index) &&
-                            index >= 0 &&
-                            index < totalBeds
+                            Number.isInteger(i) &&
+                            i >= 0 &&
+                            i < totalBeds
                         ) {
 
-                            customers[index] = {
+                            customers[i] = {
+
                                 id: snap.id,
+
                                 ...data
                             };
                         }
@@ -1676,12 +1790,15 @@ async function startRealtimeData() {
                 );
 
 
-                dataLoaded = true;
+                dataLoaded =
+                    true;
+
 
                 loadCustomers();
 
                 updateDashboard();
             },
+
 
             error => {
 
@@ -1689,20 +1806,16 @@ async function startRealtimeData() {
                     "Customers listener:",
                     error
                 );
-
-                alert(
-                    `Customer data error: ${firebaseErrorMessage(error)}`
-                );
             }
         );
 
 
-    /* =====================================================
-       EXPENSES
-       STAFF CAN READ
-       ===================================================== */
-
-    if (canAccessExpenses()) {
+    /*
+     * Expenses
+     */
+    if (
+        canAccessExpenses()
+    ) {
 
         const expensesQuery =
             query(
@@ -1716,6 +1829,7 @@ async function startRealtimeData() {
 
         unsubscribeExpenses =
             onSnapshot(
+
                 expensesQuery,
 
                 snapshot => {
@@ -1749,26 +1863,16 @@ async function startRealtimeData() {
     }
 
 
-    /* =====================================================
-       PAYMENT HISTORY
-       OWNER / ADMIN ONLY
-       ===================================================== */
+    /*
+     * Payment History
+     */
+    if (
+        hasPermission(
+            "paymentHistory.read"
+        )
+    ) {
 
-    if (canSeePaymentHistory()) {
-
-        try {
-
-            await loadPaymentHistory();
-
-        } catch (error) {
-
-            console.error(
-                "Payment history:",
-                error
-            );
-
-            paymentHistory = {};
-        }
+        await loadPaymentHistory();
 
     } else {
 
@@ -1776,28 +1880,26 @@ async function startRealtimeData() {
     }
 
 
-    /* =====================================================
-       MONTHLY RESET
-       OWNER / ADMIN ONLY
-       ===================================================== */
-
+    /*
+     * Monthly reset only Owner/Admin
+     */
     if (isAdminRole()) {
 
-        try {
-
-            await resetMonthlyPayments();
-
-        } catch (error) {
-
-            console.error(
-                "Monthly reset:",
-                error
-            );
-        }
+        await resetMonthlyPayments();
     }
 
 
-    applyRoleUI();
+    /*
+     * User Management
+     */
+    if (
+        hasPermission(
+            "users.manage"
+        )
+    ) {
+
+        await loadUsers();
+    }
 }
 
 
@@ -1807,14 +1909,12 @@ async function startRealtimeData() {
 
 async function loadPaymentHistory() {
 
-    requireRole(
-        "owner",
-        "admin"
-    );
+    requireFirebase();
 
 
     const snapshot =
         await getDocs(
+
             query(
                 paymentHistoryCollection(),
                 orderBy(
@@ -1842,541 +1942,306 @@ async function loadPaymentHistory() {
         }
     );
 }
-
-
 /* =========================================================
-   CUSTOMER CRUD
+   CUSTOMER CRUD — FIRESTORE + STORAGE
    ========================================================= */
+async function saveCustomerToFirebase(index, customer, imageFile = null) {
+    requireRole("owner", "admin", "staff");
 
-async function saveCustomerToFirebase(
-    index,
-    customer,
-    imageFile = null
-) {
-
-    requireRole(
-        "owner",
-        "admin",
-        "staff"
-    );
-
-
-    let idImagePath =
-        customer.idImagePath ||
-        null;
-
+    let idImagePath = customer.idImagePath || null;
 
     if (imageFile) {
+        if (!["image/jpeg", "image/png", "image/webp"].includes(imageFile.type)) {
+            throw new Error("Only JPG, PNG, or WEBP images are allowed.");
+        }
 
-        if (
-            ![
-                "image/jpeg",
-                "image/png",
-                "image/webp"
-            ].includes(
-                imageFile.type
+        if (imageFile.size > 2 * 1024 * 1024) {
+            throw new Error("ID image must be 2 MB or smaller.");
+        }
+
+        const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+        const imageRef = ref(
+            storage,
+            companyStoragePath(
+                "customer-images",
+                customerDocId(index),
+                `${Date.now()}-${safeName}`
             )
-        ) {
-
-            throw new Error(
-                "Only JPG, PNG, or WEBP images are allowed."
-            );
-        }
-
-
-        if (
-            imageFile.size >
-            2 * 1024 * 1024
-        ) {
-
-            throw new Error(
-                "ID image must be 2 MB or smaller."
-            );
-        }
-
-
-        const safeName =
-            imageFile.name.replace(
-                /[^a-zA-Z0-9._-]/g,
-                "_"
-            );
-
-
-        const imageRef =
-            ref(
-                storage,
-                companyStoragePath(
-                    "customer-images",
-                    customerDocId(index),
-                    `${Date.now()}-${safeName}`
-                )
-            );
-
-
-        await uploadBytes(
-            imageRef,
-            imageFile,
-            {
-                contentType:
-                    imageFile.type ||
-                    "image/jpeg"
-            }
         );
 
+        await uploadBytes(imageRef, imageFile, {
+            contentType: imageFile.type || "image/jpeg"
+        });
 
-        idImagePath =
-            imageRef.fullPath;
+        idImagePath = imageRef.fullPath;
     }
 
-
     const data = {
-
         ...customer,
-
         index,
-
         idImagePath,
-
         idImage: null,
-
-        updatedAt:
-            serverTimestamp(),
-
-        updatedBy:
-            auth.currentUser.uid
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser.uid
     };
 
-
     await setDoc(
-        companyDoc(
-            "customers",
-            customerDocId(index)
-        ),
+        companyDoc("customers", customerDocId(index)),
         data
     );
 }
 
 
 if (saveBtn) {
+    saveBtn.onclick = async function () {
+        try {
+            requireFirebase();
 
-    saveBtn.onclick =
-        async function () {
+            const parentPhone =
+                $("customerParentPhone")?.value.trim() || "";
 
-            try {
+            const name =
+                $("customerName")?.value.trim() || "";
 
-                requireRole(
-                    "owner",
-                    "admin",
-                    "staff"
-                );
+            const phone =
+                $("customerPhone")?.value.trim() || "";
 
+            const fileInput =
+                $("customerIdImage");
 
-                const parentPhone =
-                    $("customerParentPhone")
-                        ?.value
-                        .trim() || "";
-
-
-                const name =
-                    $("customerName")
-                        .value
-                        .trim();
-
-
-                const phone =
-                    $("customerPhone")
-                        .value
-                        .trim();
-
-
-                const fileInput =
-                    $("customerIdImage");
-
-
-                if (
-                    !name ||
-                    name.length > 120
-                ) {
-
-                    alert(
-                        "Customer name is required and must be 120 characters or fewer."
-                    );
-
-                    return;
-                }
-
-
-                if (
-                    phone.length > 40 ||
-                    parentPhone.length > 40
-                ) {
-
-                    alert(
-                        "Phone numbers are too long."
-                    );
-
-                    return;
-                }
-
-
-                if (!selectedBed) {
-
-                    alert(
-                        "Please select a bed."
-                    );
-
-                    return;
-                }
-
-
-                const i =
-                    Number(
-                        selectedBed.dataset.index
-                    );
-
-
-                const file =
-                    fileInput
-                        ?.files?.[0] ||
-                    null;
-
-
-                saveBtn.disabled =
-                    true;
-
-                saveBtn.innerText =
-                    "Saving...";
-
-
-                await saveCustomerToFirebase(
-                    i,
-                    {
-                        name,
-                        phone,
-                        parentPhone,
-                        paid: "Unpaid",
-                        date:
-                            new Date()
-                                .toISOString()
-                    },
-                    file
-                );
-
-
-                finishSave();
-
-            } catch (error) {
-
-                console.error(error);
-
+            if (!name || name.length > 120) {
                 alert(
-                    `Could not save customer: ${firebaseErrorMessage(error)}`
+                    "Customer name is required and must be 120 characters or fewer."
                 );
-
-            } finally {
-
-                saveBtn.disabled =
-                    false;
-
-                saveBtn.innerText =
-                    "Save Customer";
+                return;
             }
-        };
+
+            if (phone.length > 40 || parentPhone.length > 40) {
+                alert("Phone numbers are too long.");
+                return;
+            }
+
+            if (!selectedBed) {
+                alert("Please select a bed.");
+                return;
+            }
+
+            const i = Number(selectedBed.dataset.index);
+            const file = fileInput?.files?.[0] || null;
+
+            saveBtn.disabled = true;
+            saveBtn.innerText = "Saving...";
+
+            await saveCustomerToFirebase(
+                i,
+                {
+                    name,
+                    phone,
+                    parentPhone,
+                    paid: "Unpaid",
+                    date: new Date().toISOString()
+                },
+                file
+            );
+
+            finishSave();
+
+        } catch (error) {
+            console.error(error);
+            alert(
+                `Could not save customer: ${firebaseErrorMessage(error)}`
+            );
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerText = "Save Customer";
+        }
+    };
 }
 
 
 function finishSave() {
+    modal.style.display = "none";
 
-    modal.style.display =
-        "none";
+    $("customerName").value = "";
+    $("customerPhone").value = "";
 
-    $("customerName").value =
-        "";
+    if ($("customerParentPhone")) {
+        $("customerParentPhone").value = "";
+    }
 
-    $("customerPhone").value =
-        "";
-
-    if ($("customerParentPhone"))
-        $("customerParentPhone").value =
-            "";
-
-    $("customerIdImage").value =
-        "";
+    if ($("customerIdImage")) {
+        $("customerIdImage").value = "";
+    }
 
     updateDashboard();
 }
 
 
 if (cancelBtn) {
+    cancelBtn.onclick = function () {
+        modal.style.display = "none";
 
-    cancelBtn.onclick =
-        function () {
+        $("customerName").value = "";
+        $("customerPhone").value = "";
 
-            modal.style.display =
-                "none";
+        if ($("customerParentPhone")) {
+            $("customerParentPhone").value = "";
+        }
 
-            $("customerName").value =
-                "";
-
-            $("customerPhone").value =
-                "";
-
-            if ($("customerParentPhone"))
-                $("customerParentPhone").value =
-                    "";
-
-            $("customerIdImage").value =
-                "";
-        };
+        if ($("customerIdImage")) {
+            $("customerIdImage").value = "";
+        }
+    };
 }
 
 
 if ($("cancelEdit")) {
-
-    $("cancelEdit")
-        .addEventListener(
-            "click",
-            () => {
-
-                editModal.style.display =
-                    "none";
-            }
-        );
+    $("cancelEdit").addEventListener("click", () => {
+        editModal.style.display = "none";
+    });
 }
 
-
-/* =========================================================
-   CHECKOUT
-   ADMIN / OWNER ONLY
-   ========================================================= */
 
 if (checkoutBtn) {
+    checkoutBtn.onclick = function () {
+        if (!selectedBed) return;
 
-    checkoutBtn.onclick =
-        function () {
+        showConfirm(
+            "Are you sure you want to check out this customer?",
+            async () => {
+                try {
+                    requireRole("owner", "admin", "staff");
 
-            if (!selectedBed)
-                return;
+                    const i =
+                        Number(selectedBed.dataset.index);
 
+                    const customer = customers[i];
 
-            showConfirm(
-                "Are you sure you want to check out this customer?",
-                async () => {
+                    if (!customer) return;
 
-                    try {
+                    await deleteDoc(
+                        companyDoc(
+                            "customers",
+                            customerDocId(i)
+                        )
+                    );
 
-                        requireRole(
-                            "owner",
-                            "admin"
-                        );
+                    selectedBed.className = "available";
+                    selectedBed.innerHTML =
+                        selectedBed.dataset.bedName;
 
+                    selectedBed.disabled = false;
 
-                        const i =
-                            Number(
-                                selectedBed.dataset.index
-                            );
+                    editModal.style.display = "none";
 
+                    updateDashboard();
 
-                        const customer =
-                            customers[i];
+                } catch (error) {
+                    console.error(error);
 
-
-                        if (!customer)
-                            return;
-
-
-                        await deleteDoc(
-                            companyDoc(
-                                "customers",
-                                customerDocId(i)
-                            )
-                        );
-
-
-                        selectedBed.className =
-                            "available";
-
-                        selectedBed.innerHTML =
-                            selectedBed.dataset.bedName;
-
-                        selectedBed.disabled =
-                            false;
-
-
-                        editModal.style.display =
-                            "none";
-
-
-                        updateDashboard();
-
-                    } catch (error) {
-
-                        console.error(error);
-
-                        alert(
-                            `Checkout failed: ${firebaseErrorMessage(error)}`
-                        );
-                    }
+                    alert(
+                        `Checkout failed: ${firebaseErrorMessage(error)}`
+                    );
                 }
-            );
-        };
+            }
+        );
+    };
 }
 
 
-/* =========================================================
-   UPDATE CUSTOMER
-   ========================================================= */
-
 if (updateBtn) {
+    updateBtn.onclick = async function () {
+        try {
+            requireFirebase();
 
-    updateBtn.onclick =
-        async function () {
+            if (!selectedBed) return;
 
-            try {
+            const i =
+                Number(selectedBed.dataset.index);
 
-                requireRole(
-                    "owner",
-                    "admin",
-                    "staff"
-                );
+            const customer =
+                customers[i];
 
+            if (!customer) return;
 
-                if (!selectedBed)
-                    return;
+            const updated = {
+                name:
+                    $("editName")?.value.trim() || "",
 
+                phone:
+                    $("editPhone")?.value.trim() || "",
 
-                const i =
-                    Number(
-                        selectedBed.dataset.index
-                    );
+                paid:
+                    $("editPaid")?.value === "Paid"
+                        ? "Paid"
+                        : "Unpaid",
 
+                parentPhone:
+                    $("editParentPhone")?.value.trim() || "",
 
-                const customer =
-                    customers[i];
+                index: i,
 
+                idImagePath:
+                    customer.idImagePath || null,
 
-                if (!customer)
-                    return;
+                idImage: null,
 
+                date:
+                    customer.date ||
+                    new Date().toISOString(),
 
-                const updated = {
+                updatedAt:
+                    serverTimestamp(),
 
-                    name:
-                        $("editName")
-                            .value
-                            .trim(),
+                updatedBy:
+                    auth.currentUser.uid
+            };
 
-                    phone:
-                        $("editPhone")
-                            .value
-                            .trim(),
-
-                    paid:
-                        $("editPaid")
-                            .value === "Paid"
-                            ? "Paid"
-                            : "Unpaid",
-
-                    parentPhone:
-                        $("editParentPhone")
-                            .value
-                            .trim(),
-
-                    index: i,
-
-                    idImagePath:
-                        customer.idImagePath ||
-                        null,
-
-                    idImage: null,
-
-                    date:
-                        customer.date ||
-                        new Date()
-                            .toISOString(),
-
-                    updatedAt:
-                        serverTimestamp(),
-
-                    updatedBy:
-                        auth.currentUser.uid
-                };
-
-
-                if (!updated.name) {
-
-                    alert(
-                        "Customer name is required."
-                    );
-
-                    return;
-                }
-
-
-                updateBtn.disabled =
-                    true;
-
-                updateBtn.innerText =
-                    "Saving...";
-
-
-                await updateDoc(
-                    companyDoc(
-                        "customers",
-                        customerDocId(i)
-                    ),
-                    updated
-                );
-
-
-                /*
-                 * IMPORTANT:
-                 * Staff does NOT write payment history.
-                 */
-
-                if (canSeeRevenue()) {
-
-                    await saveMonthlyPaidRecord();
-                }
-
-
-                editModal.style.display =
-                    "none";
-
-            } catch (error) {
-
-                console.error(error);
-
-                alert(
-                    `Update failed: ${firebaseErrorMessage(error)}`
-                );
-
-            } finally {
-
-                updateBtn.disabled =
-                    false;
-
-                updateBtn.innerText =
-                    "Update Customer";
+            if (!updated.name) {
+                alert("Customer name is required.");
+                return;
             }
-        };
+
+            updateBtn.disabled = true;
+            updateBtn.innerText = "Saving...";
+
+            await updateDoc(
+                companyDoc(
+                    "customers",
+                    customerDocId(i)
+                ),
+                updated
+            );
+
+            if (canSeeRevenue()) {
+                await saveMonthlyPaidRecord();
+            }
+
+            editModal.style.display = "none";
+
+        } catch (error) {
+            console.error(error);
+
+            alert(
+                `Update failed: ${firebaseErrorMessage(error)}`
+            );
+        } finally {
+            updateBtn.disabled = false;
+            updateBtn.innerText = "Update Customer";
+        }
+    };
 }
 
 
 function saveCustomers() {
-
+    // Compatibility function for older HTML code.
     return Promise.resolve();
 }
 
 
 function loadCustomers() {
-
-    for (
-        let i = 0;
-        i < customers.length;
-        i++
-    ) {
-
+    for (let i = 0; i < customers.length; i++) {
         updateBedUI(i);
     }
 
@@ -2385,7 +2250,7 @@ function loadCustomers() {
 
 
 /* =========================================================
-   DASHBOARD
+   DASHBOARD & PAYMENT STATUS
    ========================================================= */
 
 function updateDashboard() {
@@ -2393,114 +2258,55 @@ function updateDashboard() {
     let occupied = 0;
     let paid = 0;
     let unpaid = 0;
-
     let revenue = 0;
 
+    for (let i = 0; i < customers.length; i++) {
 
-    for (
-        let i = 0;
-        i < customers.length;
-        i++
-    ) {
+        const c = customers[i];
 
-        const c =
-            customers[i];
+        if (c) {
 
+            occupied++;
 
-        if (!c)
-            continue;
-
-
-        occupied++;
-
-
-        if (
-            c.paid === "Paid"
-        ) {
-
-            paid++;
-
-
-            if (canSeeRevenue()) {
-
-                revenue +=
-                    MONTHLY_RENT;
+            if (c.paid === "Paid") {
+                paid++;
+                revenue += MONTHLY_RENT;
+            } else {
+                unpaid++;
             }
-
-        } else {
-
-            unpaid++;
         }
     }
 
+    if ($("occupiedBeds")) {
+        $("occupiedBeds").innerText = occupied;
+    }
 
-    /* GENERAL KPIs */
-
-    if ($("occupiedBeds"))
-        $("occupiedBeds").innerText =
-            occupied;
-
-
-    if ($("availableBeds"))
+    if ($("availableBeds")) {
         $("availableBeds").innerText =
-            totalBeds -
-            occupied;
-
-
-    if ($("paidCustomers"))
-        $("paidCustomers").innerText =
-            paid;
-
-
-    if ($("unpaidCustomers"))
-        $("unpaidCustomers").innerText =
-            unpaid;
-
-
-    /* REVENUE */
-
-    if (canSeeRevenue()) {
-
-        if ($("revenue")) {
-
-            $("revenue").style.display =
-                "";
-
-            $("revenue").innerText =
-                formatCurrency(
-                    revenue
-                );
-        }
-
-    } else {
-
-        if ($("revenue")) {
-
-            $("revenue").innerText =
-                "";
-
-            $("revenue").style.display =
-                "none";
-        }
+            totalBeds - occupied;
     }
 
+    if ($("paidCustomers")) {
+        $("paidCustomers").innerText = paid;
+    }
+
+    if ($("unpaidCustomers")) {
+        $("unpaidCustomers").innerText = unpaid;
+    }
+
+    if ($("revenue")) {
+        $("revenue").innerText =
+            canSeeRevenue()
+                ? formatCurrency(revenue)
+                : "";
+    }
 
     updateFinanceDashboard();
-
     renderPaidClients();
-
-    applyRoleUI();
 }
 
 
-/* =========================================================
-   PAYMENT STATUS
-   ========================================================= */
-
-async function setCustomerPaid(
-    index,
-    status
-) {
+async function setCustomerPaid(index, status) {
 
     requireRole(
         "owner",
@@ -2508,20 +2314,15 @@ async function setCustomerPaid(
         "staff"
     );
 
-
     const customer =
         customers[index];
 
-
-    if (!customer)
-        return;
-
+    if (!customer) return;
 
     const safeStatus =
         status === "Paid"
             ? "Paid"
             : "Unpaid";
-
 
     await updateDoc(
         companyDoc(
@@ -2529,7 +2330,6 @@ async function setCustomerPaid(
             customerDocId(index)
         ),
         {
-
             paid: safeStatus,
 
             paymentUpdatedAt:
@@ -2540,35 +2340,26 @@ async function setCustomerPaid(
         }
     );
 
-
-    /*
-     * Staff cannot write payment history.
-     */
-
     if (canSeeRevenue()) {
-
         await saveMonthlyPaidRecord();
     }
 }
 
 
-function togglePaid(
-    button,
-    index
-) {
+function togglePaid(button, index) {
 
-    if (!customers[index])
-        return;
-
+    if (!customers[index]) return;
 
     const nextStatus =
         customers[index].paid === "Paid"
             ? "Unpaid"
             : "Paid";
 
-
     showConfirm(
-        `Change ${escapeHTML(customers[index].name)} to ${nextStatus}?`,
+        `Change ${escapeHTML(
+            customers[index].name
+        )} to ${nextStatus}?`,
+
         async () => {
 
             try {
@@ -2594,15 +2385,11 @@ function togglePaid(
 function createPaidButton(index) {
 
     const btn =
-        document.createElement(
-            "button"
-        );
-
+        document.createElement("button");
 
     const status =
         customers[index]?.paid ||
         "Unpaid";
-
 
     btn.className =
         "paid-btn " +
@@ -2612,42 +2399,29 @@ function createPaidButton(index) {
                 : "unpaid"
         );
 
+    btn.innerText = status;
 
-    btn.innerText =
-        status;
+    btn.onclick = function (e) {
 
+        e.stopPropagation();
 
-    btn.onclick =
-        function (e) {
-
-            e.stopPropagation();
-
-            togglePaid(
-                btn,
-                index
-            );
-        };
-
+        togglePaid(
+            btn,
+            index
+        );
+    };
 
     return btn;
 }
 
 
-/* =========================================================
-   CONFIRM MODAL
-   ========================================================= */
-
-function showConfirm(
-    message,
-    callback
-) {
+function showConfirm(message, callback) {
 
     $("confirmText").innerText =
         message;
 
     confirmModal.style.display =
         "flex";
-
 
     confirmOk.onclick =
         async function () {
@@ -2658,7 +2432,6 @@ function showConfirm(
             await callback();
         };
 
-
     confirmCancel.onclick =
         function () {
 
@@ -2668,50 +2441,28 @@ function showConfirm(
 }
 
 
-/* =========================================================
-   SECURE IMAGE
-   ========================================================= */
+async function getSecureImageUrl(path) {
 
-async function getSecureImageUrl(
-    path
-) {
+    if (!path) return null;
 
-    if (!path)
-        return null;
-
-
-    if (
-        imageObjectUrls.has(path)
-    ) {
-
-        return imageObjectUrls.get(
-            path
-        );
+    if (imageObjectUrls.has(path)) {
+        return imageObjectUrls.get(path);
     }
-
 
     try {
 
         const blob =
             await getBlob(
-                ref(
-                    storage,
-                    path
-                )
+                ref(storage, path)
             );
-
 
         const url =
-            URL.createObjectURL(
-                blob
-            );
-
+            URL.createObjectURL(blob);
 
         imageObjectUrls.set(
             path,
             url
         );
-
 
         return url;
 
@@ -2727,10 +2478,6 @@ async function getSecureImageUrl(
 }
 
 
-/* =========================================================
-   BED UI
-   ========================================================= */
-
 async function updateBedUI(index) {
 
     const button =
@@ -2738,14 +2485,10 @@ async function updateBedUI(index) {
             `[data-index="${index}"]`
         );
 
-
-    if (!button)
-        return;
-
+    if (!button) return;
 
     const c =
         customers[index];
-
 
     if (!c) {
 
@@ -2757,22 +2500,17 @@ async function updateBedUI(index) {
                 button.dataset.bedName
             );
 
-        button.disabled =
-            false;
+        button.disabled = false;
 
         return;
     }
 
-
-    button.disabled =
-        false;
-
+    button.disabled = false;
 
     button.className =
         c.paid === "Unpaid"
             ? "occupied unpaid-card"
             : "occupied paid-card";
-
 
     button.innerHTML = `
         <b>${escapeHTML(c.name)}</b><br>
@@ -2781,10 +2519,8 @@ async function updateBedUI(index) {
         ${escapeHTML(c.date || "-")}<br>
     `;
 
-
     const imagePath =
         c.idImagePath;
-
 
     if (imagePath) {
 
@@ -2793,42 +2529,29 @@ async function updateBedUI(index) {
                 imagePath
             );
 
-
         if (
             url &&
             customers[index] === c
         ) {
 
             const img =
-                document.createElement(
-                    "img"
-                );
+                document.createElement("img");
 
-
-            img.src =
-                url;
-
-            img.alt =
-                "ID";
+            img.src = url;
+            img.alt = "ID";
 
             img.style.cssText =
                 "width:40px;height:40px;border-radius:6px;object-fit:cover;";
 
-
             button.prepend(img);
         }
     }
-
 
     button.appendChild(
         createPaidButton(index)
     );
 }
 
-
-/* =========================================================
-   KPI
-   ========================================================= */
 
 function showKpi(type) {
 
@@ -2838,15 +2561,11 @@ function showKpi(type) {
     const kpiList =
         $("kpiList");
 
-
-    kpiList.innerHTML =
-        "";
-
+    kpiList.innerHTML = "";
 
     let title = "";
 
     const list = [];
-
 
     for (
         let i = 0;
@@ -2860,7 +2579,6 @@ function showKpi(type) {
         const location =
             getLocation(i);
 
-
         if (
             type === "available" &&
             !c
@@ -2873,109 +2591,148 @@ function showKpi(type) {
             });
         }
 
-
         if (c) {
 
             if (
                 type === "occupied"
-            )
+            ) {
                 list.push({
                     ...c,
                     ...location
                 });
-
+            }
 
             if (
                 type === "paid" &&
                 c.paid === "Paid"
-            )
+            ) {
                 list.push({
                     ...c,
                     ...location
                 });
-
+            }
 
             if (
                 type === "unpaid" &&
                 c.paid !== "Paid"
-            )
+            ) {
                 list.push({
                     ...c,
                     ...location
                 });
+            }
         }
     }
 
-
-    if (type === "occupied")
+    if (type === "occupied") {
         title =
             "Occupied Customers";
+    }
 
-    if (type === "available")
+    if (type === "available") {
         title =
             "Available Beds";
+    }
 
-    if (type === "paid")
+    if (type === "paid") {
         title =
             "Paid Customers";
+    }
 
-    if (type === "unpaid")
+    if (type === "unpaid") {
         title =
             "Unpaid Customers";
-
+    }
 
     kpiTitle.innerText =
         title;
 
-
     list.forEach(item => {
 
         const div =
-            document.createElement(
-                "div"
-            );
+            document.createElement("div");
 
         div.className =
             "kpi-item";
 
-
         if (
-            item.type ===
-            "available"
+            item.type === "available"
         ) {
 
             div.innerHTML = `
-                <div class="kpi-title">🛏 Empty Bed</div>
-                <div class="kpi-row"><span>Floor</span><b>${item.floor}</b></div>
-                <div class="kpi-row"><span>Apartment</span><b>${item.apartment}</b></div>
-                <div class="kpi-row"><span>Room</span><b>${item.room}</b></div>
-                <div class="kpi-row"><span>Bed</span><b>${item.bed}</b></div>
+                <div class="kpi-title">
+                    🛏 Empty Bed
+                </div>
+
+                <div class="kpi-row">
+                    <span>Floor</span>
+                    <b>${item.floor}</b>
+                </div>
+
+                <div class="kpi-row">
+                    <span>Apartment</span>
+                    <b>${item.apartment}</b>
+                </div>
+
+                <div class="kpi-row">
+                    <span>Room</span>
+                    <b>${item.room}</b>
+                </div>
+
+                <div class="kpi-row">
+                    <span>Bed</span>
+                    <b>${item.bed}</b>
+                </div>
             `;
 
         } else {
 
             div.innerHTML = `
-                <div class="kpi-title">${escapeHTML(item.name)}</div>
-                <div class="kpi-row"><span>Floor</span><b>${item.floor}</b></div>
-                <div class="kpi-row"><span>Apartment</span><b>${item.apartment}</b></div>
-                <div class="kpi-row"><span>Room</span><b>${item.room}</b></div>
-                <div class="kpi-row"><span>Bed</span><b>${item.bed}</b></div>
-                <div class="kpi-row"><span>Phone</span><b>${escapeHTML(item.phone || "-")}</b></div>
+                <div class="kpi-title">
+                    ${escapeHTML(item.name)}
+                </div>
+
+                <div class="kpi-row">
+                    <span>Floor</span>
+                    <b>${item.floor}</b>
+                </div>
+
+                <div class="kpi-row">
+                    <span>Apartment</span>
+                    <b>${item.apartment}</b>
+                </div>
+
+                <div class="kpi-row">
+                    <span>Room</span>
+                    <b>${item.room}</b>
+                </div>
+
+                <div class="kpi-row">
+                    <span>Bed</span>
+                    <b>${item.bed}</b>
+                </div>
+
+                <div class="kpi-row">
+                    <span>Phone</span>
+                    <b>${escapeHTML(item.phone || "-")}</b>
+                </div>
+
                 <div class="kpi-row">
                     <span>Status</span>
-                    <b style="color:${item.paid === "Paid" ? "#22c55e" : "#ef4444"}">
+
+                    <b style="color:${
+                        item.paid === "Paid"
+                            ? "#22c55e"
+                            : "#ef4444"
+                    }">
                         ${escapeHTML(item.paid)}
                     </b>
                 </div>
             `;
         }
 
-
-        kpiList.appendChild(
-            div
-        );
+        kpiList.appendChild(div);
     });
-
 
     kpiModal.style.display =
         "flex";
@@ -2983,7 +2740,6 @@ function showKpi(type) {
 
 
 function closeKpi() {
-
     kpiModal.style.display =
         "none";
 }
@@ -2996,7 +2752,6 @@ function closeKpi() {
 const searchInput =
     $("searchInput");
 
-
 if (searchInput) {
 
     searchInput.addEventListener(
@@ -3008,164 +2763,121 @@ if (searchInput) {
                     .toLowerCase()
                     .trim();
 
-
             document
-                .querySelectorAll(
-                    ".floor"
-                )
+                .querySelectorAll(".floor")
                 .forEach(floor => {
 
                     let floorHasResult =
                         false;
 
-
                     floor
-                        .querySelectorAll(
-                            ".apartment"
-                        )
-                        .forEach(
-                            apartment => {
+                        .querySelectorAll(".apartment")
+                        .forEach(apartment => {
 
-                                let apartmentHasResult =
-                                    false;
+                            let apartmentHasResult =
+                                false;
 
+                            apartment
+                                .querySelectorAll(".room")
+                                .forEach(room => {
 
-                                apartment
-                                    .querySelectorAll(
-                                        ".room"
-                                    )
-                                    .forEach(
-                                        room => {
+                                    let roomHasResult =
+                                        false;
 
-                                            let roomHasResult =
-                                                false;
+                                    room
+                                        .querySelectorAll("button")
+                                        .forEach(btn => {
 
-
-                                            room
-                                                .querySelectorAll(
-                                                    "button"
-                                                )
-                                                .forEach(
-                                                    btn => {
-
-                                                        const i =
-                                                            Number(
-                                                                btn.dataset.index
-                                                            );
-
-
-                                                        const c =
-                                                            customers[i];
-
-
-                                                        const location =
-                                                            getLocation(i);
-
-
-                                                        let match =
-                                                            value ===
-                                                            "";
-
-
-                                                        if (
-                                                            !match &&
-                                                            c
-                                                        ) {
-
-                                                            const haystack =
-                                                                [
-                                                                    c.name,
-                                                                    c.phone,
-                                                                    c.parentPhone,
-                                                                    c.paid
-                                                                ]
-                                                                    .filter(
-                                                                        Boolean
-                                                                    )
-                                                                    .join(
-                                                                        " "
-                                                                    )
-                                                                    .toLowerCase();
-
-
-                                                            match =
-                                                                haystack.includes(
-                                                                    value
-                                                                );
-                                                        }
-
-
-                                                        if (!match) {
-
-                                                            const locationText =
-                                                                `floor ${location.floor} apartment ${location.apartment} room ${location.room} bed ${location.bed}`;
-
-
-                                                            match =
-                                                                locationText.includes(
-                                                                    value
-                                                                ) ||
-                                                                String(
-                                                                    location.floor
-                                                                ) ===
-                                                                    value ||
-                                                                String(
-                                                                    location.apartment
-                                                                ) ===
-                                                                    value ||
-                                                                String(
-                                                                    location.room
-                                                                ) ===
-                                                                    value ||
-                                                                String(
-                                                                    location.bed
-                                                                ) ===
-                                                                    value;
-                                                        }
-
-
-                                                        btn.style.visibility =
-                                                            match
-                                                                ? "visible"
-                                                                : "hidden";
-
-
-                                                        if (match)
-                                                            roomHasResult =
-                                                                true;
-                                                    }
+                                            const i =
+                                                Number(
+                                                    btn.dataset.index
                                                 );
 
+                                            const c =
+                                                customers[i];
 
-                                            room.style.display =
-                                                roomHasResult
-                                                    ? ""
-                                                    : "none";
+                                            const location =
+                                                getLocation(i);
 
+                                            let match =
+                                                value === "";
 
                                             if (
-                                                roomHasResult
-                                            )
-                                                apartmentHasResult =
+                                                !match &&
+                                                c
+                                            ) {
+
+                                                const haystack = [
+                                                    c.name,
+                                                    c.phone,
+                                                    c.parentPhone,
+                                                    c.paid
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(" ")
+                                                    .toLowerCase();
+
+                                                match =
+                                                    haystack.includes(
+                                                        value
+                                                    );
+                                            }
+
+                                            if (!match) {
+
+                                                const locationText =
+                                                    `floor ${location.floor} apartment ${location.apartment} room ${location.room} bed ${location.bed}`;
+
+                                                match =
+                                                    locationText.includes(
+                                                        value
+                                                    ) ||
+                                                    String(
+                                                        location.floor
+                                                    ) === value ||
+                                                    String(
+                                                        location.apartment
+                                                    ) === value ||
+                                                    String(
+                                                        location.room
+                                                    ) === value ||
+                                                    String(
+                                                        location.bed
+                                                    ) === value;
+                                            }
+
+                                            btn.style.visibility =
+                                                match
+                                                    ? "visible"
+                                                    : "hidden";
+
+                                            if (match) {
+                                                roomHasResult =
                                                     true;
-                                        }
-                                    );
+                                            }
+                                        });
 
+                                    room.style.display =
+                                        roomHasResult
+                                            ? ""
+                                            : "none";
 
-                                apartment.style.display =
-                                    apartmentHasResult
-                                        ? ""
-                                        : "none";
+                                    if (roomHasResult) {
+                                        apartmentHasResult =
+                                            true;
+                                    }
+                                });
 
+                            apartment.style.display =
+                                apartmentHasResult
+                                    ? ""
+                                    : "none";
 
-                                if (
-                                    apartmentHasResult
-                                )
-                                    floorHasResult =
-                                        true;
+                            if (apartmentHasResult) {
+                                floorHasResult =
+                                    true;
                             }
-                        );
-
+                        });
 
                     floor.style.display =
                         floorHasResult
@@ -3178,7 +2890,7 @@ if (searchInput) {
 
 
 /* =========================================================
-   MONTHLY PAYMENTS
+   MONTHLY PAYMENTS + HISTORY
    ========================================================= */
 
 async function saveMonthlyPaidRecord(
@@ -3191,9 +2903,7 @@ async function saveMonthlyPaidRecord(
         "admin"
     );
 
-
     const paidCustomers = [];
-
 
     for (
         let i = 0;
@@ -3204,27 +2914,21 @@ async function saveMonthlyPaidRecord(
         const c =
             sourceCustomers[i];
 
-
         if (
             !c ||
             c.paid !== "Paid"
-        )
+        ) {
             continue;
-
+        }
 
         paidCustomers.push({
-
             ...c,
-
             ...getLocation(i),
-
             index: i,
-
             customerId:
                 customerDocId(i)
         });
     }
-
 
     await setDoc(
         companyDoc(
@@ -3232,7 +2936,6 @@ async function saveMonthlyPaidRecord(
             monthKey
         ),
         {
-
             monthKey,
 
             records:
@@ -3253,15 +2956,10 @@ async function saveMonthlyPaidRecord(
         }
     );
 
-
     paymentHistory[monthKey] =
         paidCustomers;
 }
 
-
-/* =========================================================
-   MONTHLY RESET
-   ========================================================= */
 
 async function resetMonthlyPayments() {
 
@@ -3270,38 +2968,31 @@ async function resetMonthlyPayments() {
         "admin"
     );
 
-
     const currentMonthKey =
         getMonthKey();
 
-
     const settingsRef =
         settingsDoc();
-
 
     const settingsSnap =
         await getDoc(
             settingsRef
         );
 
-
     const settings =
         settingsSnap.exists()
             ? settingsSnap.data()
             : {};
 
-
     const lastProcessedMonth =
         settings.lastPaymentReset ||
         null;
-
 
     if (!lastProcessedMonth) {
 
         await setDoc(
             settingsRef,
             {
-
                 lastPaymentReset:
                     currentMonthKey,
 
@@ -3309,35 +3000,31 @@ async function resetMonthlyPayments() {
 
                 updatedAt:
                     serverTimestamp()
-
             },
             {
                 merge: true
             }
         );
 
-
         if (
             customers.some(Boolean)
         ) {
-
             await saveMonthlyPaidRecord(
                 currentMonthKey
             );
         }
 
-
         return;
     }
-
 
     if (
         lastProcessedMonth ===
         currentMonthKey
-    )
+    ) {
         return;
+    }
 
-
+    // Archive previous month before resetting payment statuses.
     if (lastProcessedMonth) {
 
         await saveMonthlyPaidRecord(
@@ -3345,24 +3032,20 @@ async function resetMonthlyPayments() {
         );
     }
 
-
     const batch =
         writeBatch(db);
 
-
     let resetCount = 0;
-
 
     customers.forEach(
         (customer, i) => {
 
             if (
                 !customer ||
-                customer.paid ===
-                    "Unpaid"
-            )
+                customer.paid === "Unpaid"
+            ) {
                 return;
-
+            }
 
             batch.update(
                 companyDoc(
@@ -3370,7 +3053,6 @@ async function resetMonthlyPayments() {
                     customerDocId(i)
                 ),
                 {
-
                     paid: "Unpaid",
 
                     monthlyResetAt:
@@ -3381,22 +3063,17 @@ async function resetMonthlyPayments() {
                 }
             );
 
-
             resetCount++;
         }
     );
 
-
     if (resetCount > 0) {
-
         await batch.commit();
     }
-
 
     await setDoc(
         settingsRef,
         {
-
             lastPaymentReset:
                 currentMonthKey,
 
@@ -3404,24 +3081,17 @@ async function resetMonthlyPayments() {
 
             updatedAt:
                 serverTimestamp()
-
         },
         {
             merge: true
         }
     );
 
-
     console.log(
         `Reset ${resetCount} customers for ${currentMonthKey}.`
     );
 }
 
-
-/* =========================================================
-   PAYMENT HISTORY UI
-   OWNER / ADMIN ONLY
-   ========================================================= */
 
 async function showHistory() {
 
@@ -3432,21 +3102,15 @@ async function showHistory() {
             "admin"
         );
 
-
         await loadPaymentHistory();
-
 
         const modalHistory =
             $("historyModal");
 
-
         const container =
             $("historyContainer");
 
-
-        container.innerHTML =
-            "";
-
+        container.innerHTML = "";
 
         const months =
             Object.keys(
@@ -3454,7 +3118,6 @@ async function showHistory() {
             )
                 .sort()
                 .reverse();
-
 
         if (
             months.length === 0
@@ -3469,213 +3132,201 @@ async function showHistory() {
             return;
         }
 
+        months.forEach(month => {
 
-        months.forEach(
-            month => {
+            const monthTitle =
+                document.createElement("div");
 
-                const monthTitle =
-                    document.createElement(
-                        "div"
-                    );
+            monthTitle.className =
+                "history-month-title";
 
+            monthTitle.innerHTML = `
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    padding:10px;
+                    background:#f8fafc;
+                    border-radius:6px;
+                    margin-top:10px;
+                ">
 
-                monthTitle.className =
-                    "history-month-title";
+                    <span>
+                        📅 ${escapeHTML(month)}
+                    </span>
 
+                    <button
+                        class="delete-history-btn"
+                        data-admin-only
+                        onclick="deleteHistory('${escapeHTML(month)}')"
+                        style="
+                            background:#ef4444;
+                            color:white;
+                            border:none;
+                            padding:4px 8px;
+                            border-radius:4px;
+                            cursor:pointer;
+                        "
+                    >
+                        🗑 Delete
+                    </button>
 
-                monthTitle.innerHTML = `
-                    <div style="
-                        display:flex;
-                        justify-content:space-between;
-                        align-items:center;
-                        padding:10px;
-                        background:#f8fafc;
-                        border-radius:6px;
-                        margin-top:10px;
-                    ">
-                        <span>📅 ${escapeHTML(month)}</span>
+                </div>
+            `;
 
-                        <button
-                            class="delete-history-btn"
-                            data-admin-only
-                            onclick="deleteHistory('${escapeHTML(month)}')"
-                            style="
-                                background:#ef4444;
-                                color:white;
-                                border:none;
-                                padding:4px 8px;
-                                border-radius:4px;
-                                cursor:pointer;
-                            "
-                        >
-                            🗑 Delete
-                        </button>
-                    </div>
-                `;
+            const table =
+                document.createElement("table");
 
+            table.className =
+                "history-table";
 
-                const table =
-                    document.createElement(
-                        "table"
-                    );
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Parent Phone</th>
+                        <th>Location</th>
+                        <th>Bed</th>
+                        <th>Stay Days</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
 
+                <tbody></tbody>
+            `;
 
-                table.className =
-                    "history-table";
+            const tbody =
+                table.querySelector("tbody");
 
+            (
+                paymentHistory[month] ||
+                []
+            ).forEach(c => {
 
-                table.innerHTML = `
-                    <thead>
-                        <tr>
-                            <th>Customer</th>
-                            <th>Phone</th>
-                            <th>Parent Phone</th>
-                            <th>Location</th>
-                            <th>Bed</th>
-                            <th>Stay Days</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
+                const tr =
+                    document.createElement("tr");
 
-                    <tbody></tbody>
-                `;
+                const stayDays =
+                    getStayDays(c.date);
 
+                let rowColor =
+                    "#ffffff";
 
-                const tbody =
-                    table.querySelector(
-                        "tbody"
-                    );
+                if (
+                    stayDays >= 90
+                ) {
+                    rowColor =
+                        "#dcfce7";
+                } else if (
+                    stayDays >= 30
+                ) {
+                    rowColor =
+                        "#fef9c3";
+                }
 
+                tr.style.background =
+                    rowColor;
 
-                (
-                    paymentHistory[
-                        month
-                    ] || []
-                ).forEach(c => {
+                tr.innerHTML = `
+                    <td>
+                        <div style="
+                            display:flex;
+                            align-items:center;
+                            gap:12px
+                        ">
 
-                    const tr =
-                        document.createElement(
-                            "tr"
-                        );
-
-
-                    const stayDays =
-                        getStayDays(
-                            c.date
-                        );
-
-
-                    let rowColor =
-                        "#ffffff";
-
-
-                    if (
-                        stayDays >= 90
-                    )
-                        rowColor =
-                            "#dcfce7";
-
-                    else if (
-                        stayDays >= 30
-                    )
-                        rowColor =
-                            "#fef9c3";
-
-
-                    tr.style.background =
-                        rowColor;
-
-
-                    tr.innerHTML = `
-                        <td>
                             <div style="
+                                width:38px;
+                                height:38px;
+                                border-radius:50%;
+                                background:#e2e8f0;
                                 display:flex;
                                 align-items:center;
-                                gap:12px
+                                justify-content:center;
                             ">
-                                <div style="
-                                    width:38px;
-                                    height:38px;
-                                    border-radius:50%;
-                                    background:#e2e8f0;
-                                    display:flex;
-                                    align-items:center;
-                                    justify-content:center;
-                                ">
-                                    👤
+                                👤
+                            </div>
+
+                            <div>
+                                <div style="font-weight:700">
+                                    ${escapeHTML(c.name)}
                                 </div>
 
-                                <div>
-                                    <div style="font-weight:700">
-                                        ${escapeHTML(c.name)}
-                                    </div>
-
-                                    <div style="
-                                        font-size:11px;
-                                        color:#94a3b8
-                                    ">
-                                        Client #${1000 + Number(c.index || 0)}
-                                    </div>
+                                <div style="
+                                    font-size:11px;
+                                    color:#94a3b8
+                                ">
+                                    Client #${
+                                        1000 +
+                                        Number(c.index || 0)
+                                    }
                                 </div>
                             </div>
-                        </td>
 
-                        <td>
-                            ${escapeHTML(c.phone || "-")}
-                            ${
-                                c.phone
-                                    ? `<button type="button" onclick="copyPhone('${escapeHTML(c.phone)}')" style="margin-left:6px;">📋</button>`
-                                    : ""
-                            }
-                        </td>
+                        </div>
+                    </td>
 
-                        <td>
-                            ${escapeHTML(c.parentPhone || "-")}
-                        </td>
+                    <td>
+                        ${escapeHTML(c.phone || "-")}
 
-                        <td>
-                            <span class="location-badge">
-                                Fl ${c.floor}
-                                • Apt ${c.apartment}
-                                • Rm ${c.room}
-                            </span>
-                        </td>
+                        ${
+                            c.phone
+                                ? `
+                                    <button
+                                        type="button"
+                                        onclick="copyPhone('${escapeHTML(c.phone)}')"
+                                        style="margin-left:6px;"
+                                    >
+                                        📋
+                                    </button>
+                                `
+                                : ""
+                        }
+                    </td>
 
-                        <td>
-                            <b>Bed ${c.bed}</b>
-                        </td>
+                    <td>
+                        ${escapeHTML(
+                            c.parentPhone || "-"
+                        )}
+                    </td>
 
-                        <td>
-                            ${stayDays}
-                        </td>
+                    <td>
+                        <span class="location-badge">
+                            Fl ${c.floor}
+                            • Apt ${c.apartment}
+                            • Rm ${c.room}
+                        </span>
+                    </td>
 
-                        <td>
-                            <span class="status-pill-paid">
-                                PAID
-                            </span>
-                        </td>
-                    `;
+                    <td>
+                        <b>Bed ${c.bed}</b>
+                    </td>
 
+                    <td>
+                        ${stayDays}
+                    </td>
 
-                    tbody.appendChild(
-                        tr
-                    );
-                });
+                    <td>
+                        <span class="status-pill-paid">
+                            PAID
+                        </span>
+                    </td>
+                `;
 
+                tbody.appendChild(tr);
+            });
 
-                container.appendChild(
-                    monthTitle
-                );
+            container.appendChild(
+                monthTitle
+            );
 
-                container.appendChild(
-                    table
-                );
-            }
-        );
-
+            container.appendChild(
+                table
+            );
+        });
 
         applyRoleUI();
-
 
         modalHistory.style.display =
             "flex";
@@ -3708,18 +3359,9 @@ function closeHistory() {
 
 function deleteHistory(month) {
 
-    if (!canSeePaymentHistory()) {
-
-        alert(
-            "Only Owner or Admin can delete payment history."
-        );
-
-        return;
-    }
-
-
     showConfirm(
         `Are you sure you want to delete payment history for ${month}?`,
+
         async () => {
 
             try {
@@ -3729,7 +3371,6 @@ function deleteHistory(month) {
                     "admin"
                 );
 
-
                 await deleteDoc(
                     companyDoc(
                         "paymentHistory",
@@ -3737,11 +3378,7 @@ function deleteHistory(month) {
                     )
                 );
 
-
-                delete paymentHistory[
-                    month
-                ];
-
+                delete paymentHistory[month];
 
                 await showHistory();
 
@@ -3762,189 +3399,147 @@ function deleteHistory(month) {
    NAVIGATION
    ========================================================= */
 
-function openTab(tab) {
+function openTab(tabName) {
+    // =========================
+    // Permission check
+    // =========================
+    if (tabName === "users" && !hasPermission("users.manage")) {
+        showToast("Access denied");
+        return;
+    }
 
-    const residentsPage =
-        $("residentsPage");
+    if (tabName === "finance" && !canAccessExpenses()) {
+        showToast("Access denied");
+        return;
+    }
 
-    const financePage =
-        $("financePage");
+    // =========================
+    // Hide all pages safely
+    // =========================
+    const pages = [
+        "residentsPage",
+        "financePage",
+        "paidClientsPage",
+        "usersPage"
+    ];
 
-    const paidClientsPage =
-        $("paidClientsPage");
+    pages.forEach(id => {
+        const page = document.getElementById(id);
 
+        if (page) {
+            page.style.display = "none";
+        }
+    });
 
-    if (residentsPage)
-        residentsPage.style.display =
-            "none";
+    // =========================
+    // Remove active from tabs
+    // =========================
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.classList.remove("active");
+    });
 
+    // =========================
+    // Show selected page
+    // =========================
+    let pageId = null;
 
-    if (financePage)
-        financePage.style.display =
-            "none";
+    switch (tabName) {
+        case "residents":
+            pageId = "residentsPage";
+            break;
 
+        case "finance":
+            pageId = "financePage";
+            break;
 
-    if (paidClientsPage)
-        paidClientsPage.style.display =
-            "none";
+        case "paidClients":
+            pageId = "paidClientsPage";
+            break;
 
+        case "users":
+            pageId = "usersPage";
 
-    document
-        .querySelectorAll(
-            ".tab-btn"
-        )
-        .forEach(
-            b =>
-                b.classList.remove(
-                    "active"
-                )
+            // Only admin/owner can open it
+            if (!isAdminRole()) {
+                showToast("Access denied");
+                return;
+            }
+
+            // Load users when opening the page
+            if (typeof loadUsers === "function") {
+                loadUsers();
+            }
+            break;
+
+        default:
+            console.warn("Unknown tab:", tabName);
+            return;
+    }
+
+    // =========================
+    // Display selected page
+    // =========================
+    const selectedPage = document.getElementById(pageId);
+
+    if (!selectedPage) {
+        console.error(
+            `openTab(): Element #${pageId} was not found in the HTML.`
         );
-
-
-    /* RESIDENTS */
-
-    if (
-        tab === "residents"
-    ) {
-
-        if (residentsPage)
-            residentsPage.style.display =
-                "block";
-
-
-        const btn =
-            document.querySelectorAll(
-                ".tab-btn"
-            )[0];
-
-
-        if (btn)
-            btn.classList.add(
-                "active"
-            );
-
-
         return;
     }
 
+    selectedPage.style.display = "block";
 
-    /* FINANCE */
+    // =========================
+    // Set active button
+    // =========================
+    const activeButton = document.querySelector(
+        `.tab-btn[onclick*="openTab('${tabName}')"]`
+    );
 
-    if (
-        tab === "finance"
-    ) {
-
-        if (!canAccessExpenses()) {
-
-            alert(
-                "You do not have permission to access Finance."
-            );
-
-            openTab(
-                "residents"
-            );
-
-            return;
-        }
-
-
-        if (financePage)
-            financePage.style.display =
-                "block";
-
-
-        const btn =
-            document.querySelectorAll(
-                ".tab-btn"
-            )[1];
-
-
-        if (btn)
-            btn.classList.add(
-                "active"
-            );
-
-
-        renderExpenses();
-
-        updateFinanceDashboard();
-
-        applyRoleUI();
-
-        return;
+    if (activeButton) {
+        activeButton.classList.add("active");
     }
 
-
-    /* PAID CLIENTS */
-
-    if (
-        tab === "paidClients"
-    ) {
-
-        if (
-            !hasPermission(
-                "customers.read"
-            )
-        ) {
-
-            alert(
-                "You do not have permission to access Paid Clients."
-            );
-
-            openTab(
-                "residents"
-            );
-
-            return;
+    // =========================
+    // Refresh specific content
+    // =========================
+    if (tabName === "finance") {
+        if (typeof renderExpenses === "function") {
+            renderExpenses();
         }
 
+        if (typeof updateFinanceKPIs === "function") {
+            updateFinanceKPIs();
+        }
+    }
 
-        if (paidClientsPage)
-            paidClientsPage.style.display =
-                "block";
+    if (tabName === "paidClients") {
+        if (typeof renderPaidClients === "function") {
+            renderPaidClients();
+        }
+    }
 
-
-        const btn =
-            document.querySelectorAll(
-                ".tab-btn"
-            )[2];
-
-
-        if (btn)
-            btn.classList.add(
-                "active"
-            );
-
-
-        renderPaidClients();
-
-        applyRoleUI();
-
-        return;
+    if (tabName === "users") {
+        if (typeof renderUsers === "function") {
+            renderUsers();
+        }
     }
 }
 
-
 /* =========================================================
-   EXPENSES
+   EXPENSES — FIRESTORE
    ========================================================= */
 
 function openExpenseModal() {
-
-    requirePermission(
-        "expenses.write"
-    );
-
 
     if (expenseModal) {
 
         expenseModal.style.display =
             "flex";
 
-
         const dateInput =
             $("expenseDate");
-
 
         if (dateInput) {
 
@@ -3959,17 +3554,13 @@ function openExpenseModal() {
 
 function closeExpenseModal() {
 
-    if (!expenseModal)
-        return;
-
+    if (!expenseModal) return;
 
     expenseModal.style.display =
         "none";
 
-
     const form =
         $("expenseForm");
-
 
     if (form) {
 
@@ -3977,17 +3568,20 @@ function closeExpenseModal() {
 
     } else {
 
-        if ($("expenseCategory"))
+        if ($("expenseCategory")) {
             $("expenseCategory").value =
                 "";
+        }
 
-        if ($("expenseDescription"))
+        if ($("expenseDescription")) {
             $("expenseDescription").value =
                 "";
+        }
 
-        if ($("expenseAmount"))
+        if ($("expenseAmount")) {
             $("expenseAmount").value =
                 "";
+        }
     }
 }
 
@@ -3996,13 +3590,12 @@ function renderExpenses(
     dataToRender = expenses
 ) {
 
-    if (!expenseTableBody)
+    if (!expenseTableBody) {
         return;
-
+    }
 
     expenseTableBody.innerHTML =
         "";
-
 
     if (
         dataToRender.length === 0
@@ -4010,7 +3603,8 @@ function renderExpenses(
 
         expenseTableBody.innerHTML = `
             <tr>
-                <td colspan="5"
+                <td
+                    colspan="5"
                     style="
                         text-align:center;
                         padding:25px;
@@ -4037,14 +3631,10 @@ function renderExpenses(
             expense => {
 
                 const tr =
-                    document.createElement(
-                        "tr"
-                    );
-
+                    document.createElement("tr");
 
                 let badgeClass =
                     "badge-other";
-
 
                 const catLower =
                     (
@@ -4052,42 +3642,44 @@ function renderExpenses(
                         ""
                     ).toLowerCase();
 
-
                 if (
                     catLower.includes(
                         "maintenance"
                     )
-                )
+                ) {
+
                     badgeClass =
                         "badge-maintenance";
 
-                else if (
+                } else if (
                     catLower.includes(
                         "utilities"
                     )
-                )
+                ) {
+
                     badgeClass =
                         "badge-utilities";
 
-                else if (
+                } else if (
                     catLower.includes(
                         "salaries"
                     )
-                )
+                ) {
+
                     badgeClass =
                         "badge-salaries";
 
-                else if (
+                } else if (
                     catLower.includes(
                         "cleaning"
                     )
-                )
+                ) {
+
                     badgeClass =
                         "badge-cleaning";
-
+                }
 
                 tr.innerHTML = `
-
                     <td>
                         <strong>
                             ${escapeHTML(
@@ -4098,10 +3690,9 @@ function renderExpenses(
                     </td>
 
                     <td>
-                        <span class="
-                            badge-category
-                            ${badgeClass}
-                        ">
+                        <span
+                            class="badge-category ${badgeClass}"
+                        >
                             ${escapeHTML(
                                 expense.category
                             )}
@@ -4115,29 +3706,47 @@ function renderExpenses(
                         )}
                     </td>
 
-                    <td style="
-                        font-weight:700;
-                        color:#dc2626;
-                    ">
+                    <td
+                        style="
+                            font-weight:700;
+                            color:#dc2626;
+                        "
+                    >
                         -${formatCurrency(
                             expense.amount
                         )}
                     </td>
 
-                    <td style="text-align:right;">
-
+                    <td
+                        style="
+                            text-align:right;
+                        "
+                    >
                         <button
                             class="btn-delete-expense"
                             data-expense-delete-only
                             onclick="deleteExpense('${escapeHTML(expense.id)}')"
                             title="Delete Expense"
                         >
-                            🗑
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6l-1 14H6L5 6"></path>
+                                <path d="M10 11v6"></path>
+                                <path d="M14 11v6"></path>
+                                <path d="M9 6V4h6v2"></path>
+                            </svg>
                         </button>
-
                     </td>
                 `;
-
 
                 expenseTableBody.appendChild(
                     tr
@@ -4146,9 +3755,7 @@ function renderExpenses(
         );
     }
 
-
     updateFinanceDashboard();
-
     applyRoleUI();
 }
 
@@ -4164,84 +3771,67 @@ function filterExpenses() {
             .toLowerCase()
             .trim();
 
-
     const categoryVal =
         $("expenseCategoryFilter")
             ?.value ||
         "all";
 
-
     const filtered =
-        expenses.filter(
-            exp => {
+        expenses.filter(exp => {
 
-                const matchesSearch =
-                    (
-                        exp.description ||
-                        ""
-                    )
-                        .toLowerCase()
-                        .includes(
-                            searchVal
-                        ) ||
+            const matchesSearch =
+                (
+                    exp.description ||
+                    ""
+                )
+                    .toLowerCase()
+                    .includes(
+                        searchVal
+                    ) ||
 
-                    (
-                        exp.category ||
-                        ""
-                    )
-                        .toLowerCase()
-                        .includes(
-                            searchVal
-                        );
+                (
+                    exp.category ||
+                    ""
+                )
+                    .toLowerCase()
+                    .includes(
+                        searchVal
+                    );
 
+            const matchesCategory =
+                categoryVal === "all" ||
+                exp.category === categoryVal;
 
-                const matchesCategory =
-                    categoryVal ===
-                        "all" ||
-                    exp.category ===
-                        categoryVal;
+            return (
+                matchesSearch &&
+                matchesCategory
+            );
+        });
 
-
-                return (
-                    matchesSearch &&
-                    matchesCategory
-                );
-            }
-        );
-
-
-    renderExpenses(
-        filtered
-    );
+    renderExpenses(filtered);
 }
 
-
-/* =========================================================
-   SAVE EXPENSE
-   STAFF ALLOWED
-   ========================================================= */
 
 async function saveNewExpense() {
 
     try {
 
-        requirePermission(
-            "expenses.write"
+        requireRole(
+            "owner",
+            "admin",
+            "staff"
         );
-
 
         const category =
             $("expenseCategory")
                 ?.value ||
             "";
 
-
         const description =
             $("expenseDescription")
                 ?.value
                 .trim() ||
             "";
-
 
         const amount =
             Number(
@@ -4250,14 +3840,12 @@ async function saveNewExpense() {
                 0
             );
 
-
         const date =
             $("expenseDate")
                 ?.value ||
             new Date()
                 .toISOString()
                 .split("T")[0];
-
 
         const allowedCategories = [
             "Maintenance",
@@ -4267,14 +3855,11 @@ async function saveNewExpense() {
             "Other"
         ];
 
-
         if (
             !allowedCategories.includes(
                 category
             ) ||
-            !Number.isFinite(
-                amount
-            ) ||
+            !Number.isFinite(amount) ||
             amount <= 0 ||
             amount > 10000000
         ) {
@@ -4286,10 +3871,8 @@ async function saveNewExpense() {
             return;
         }
 
-
         if (
-            description.length >
-            250
+            description.length > 250
         ) {
 
             alert(
@@ -4298,7 +3881,6 @@ async function saveNewExpense() {
 
             return;
         }
-
 
         if (
             !/^\d{4}-\d{2}-\d{2}$/.test(
@@ -4313,24 +3895,18 @@ async function saveNewExpense() {
             return;
         }
 
-
         saveExpenseBtn.disabled =
             true;
 
         saveExpenseBtn.innerText =
             "Saving...";
 
-
         await addDoc(
             expenseCollection(),
             {
-
                 date,
-
                 category,
-
                 description,
-
                 amount,
 
                 createdAt:
@@ -4340,7 +3916,6 @@ async function saveNewExpense() {
                     auth.currentUser.uid
             }
         );
-
 
         closeExpenseModal();
 
@@ -4363,25 +3938,24 @@ async function saveNewExpense() {
 }
 
 
-/* =========================================================
-   DELETE EXPENSE
-   OWNER / ADMIN ONLY
-   ========================================================= */
-
 function deleteExpense(id) {
 
-    if (!canDeleteExpenses()) {
+    if (
+        !hasPermission(
+            "expenses.delete"
+        )
+    ) {
 
         alert(
-            "Only Owner or Admin can delete expense records."
+            "You do not have permission to delete expense records."
         );
 
         return;
     }
 
-
     showConfirm(
         "Are you sure you want to delete this expense record?",
+
         async () => {
 
             try {
@@ -4390,19 +3964,15 @@ function deleteExpense(id) {
                     "expenses.delete"
                 );
 
-
                 if (
-                    !/^[A-Za-z0-9_-]{1,200}$/
-                        .test(
-                            String(id)
-                        )
+                    !/^[A-Za-z0-9_-]{1,200}$/.test(
+                        String(id)
+                    )
                 ) {
-
                     throw new Error(
                         "Invalid expense ID."
                     );
                 }
-
 
                 await deleteDoc(
                     companyDoc(
@@ -4424,31 +3994,17 @@ function deleteExpense(id) {
 }
 
 
-/* =========================================================
-   FINANCE DASHBOARD
-   ========================================================= */
-
 function updateFinanceDashboard() {
-
-    const seesRevenue =
-        canSeeRevenue();
-
-
-    /* EXPENSES */
 
     const expensesTotal =
         expenses.reduce(
-            (
-                sum,
-                e
-            ) =>
+            (sum, e) =>
                 sum +
                 Number(
                     e.amount || 0
                 ),
             0
         );
-
 
     if ($("financeExpenses")) {
 
@@ -4458,105 +4014,48 @@ function updateFinanceDashboard() {
             );
     }
 
+    if (canSeeRevenue()) {
 
-    /* STAFF */
+        let revenue = 0;
 
-    if (!seesRevenue) {
-
-        if ($("financeRevenue")) {
-
-            $("financeRevenue").innerHTML =
-                "";
-
-            $("financeRevenue").style.display =
-                "none";
-        }
-
-
-        if ($("financeProfit")) {
-
-            $("financeProfit").innerHTML =
-                "";
-
-            $("financeProfit").style.display =
-                "none";
-        }
-
-
-        hideElement(
-            "financeRevenueCard"
-        );
-
-        hideElement(
-            "financeProfitCard"
-        );
-
-        return;
-    }
-
-
-    /* ADMIN REVENUE */
-
-    let revenue = 0;
-
-
-    customers.forEach(
-        c => {
+        customers.forEach(c => {
 
             if (
                 c &&
                 c.paid === "Paid"
             ) {
-
                 revenue +=
                     MONTHLY_RENT;
             }
+        });
+
+        const profit =
+            revenue -
+            expensesTotal;
+
+        if ($("financeRevenue")) {
+
+            $("financeRevenue").innerHTML =
+                formatCurrency(
+                    revenue
+                );
         }
-    );
 
+        if ($("financeProfit")) {
 
-    const profit =
-        revenue -
-        expensesTotal;
+            $("financeProfit").innerHTML =
+                formatCurrency(
+                    profit
+                );
 
-
-    if ($("financeRevenue")) {
-
-        $("financeRevenue").style.display =
-            "";
-
-        $("financeRevenue").innerHTML =
-            formatCurrency(
-                revenue
-            );
+            $("financeProfit").className =
+                profit >= 0
+                    ? "kpi-value text-emerald"
+                    : "kpi-value text-danger";
+        }
     }
 
-
-    if ($("financeProfit")) {
-
-        $("financeProfit").style.display =
-            "";
-
-        $("financeProfit").innerHTML =
-            formatCurrency(
-                profit
-            );
-
-
-        $("financeProfit").className =
-            profit >= 0
-                ? "kpi-value text-emerald"
-                : "kpi-value text-danger";
-    }
-
-
-    showElement(
-        "financeRevenueCard"
-    );
-
-    showElement(
-        "financeProfitCard"
-    );
+    applyRoleUI();
 }
 
 
@@ -4569,31 +4068,21 @@ function renderPaidClients() {
     const body =
         $("paidClientsBody");
 
-
     const countElem =
         $("paidClientsCount");
-
 
     const totalRevElem =
         $("paidClientsTotalRev");
 
-
     const rateElem =
         $("paidRatePercentage");
 
+    if (!body) return;
 
-    if (!body)
-        return;
-
-
-    body.innerHTML =
-        "";
-
+    body.innerHTML = "";
 
     let paidCount = 0;
-
     let totalOccupied = 0;
-
 
     for (
         let i = 0;
@@ -4604,193 +4093,148 @@ function renderPaidClients() {
         const c =
             customers[i];
 
-
-        if (!c)
-            continue;
-
+        if (!c) continue;
 
         totalOccupied++;
 
-
         if (
             c.paid !== "Paid"
-        )
+        ) {
             continue;
-
+        }
 
         paidCount++;
-
 
         const location =
             getLocation(i);
 
-
         const tr =
-            document.createElement(
-                "tr"
-            );
-
+            document.createElement("tr");
 
         tr.dataset.floor =
-            String(
-                location.floor
-            );
-
+            String(location.floor);
 
         tr.innerHTML = `
-
             <td>
-
-                <div style="
-                    display:flex;
-                    align-items:center;
-                    gap:12px;
-                ">
-
-                    <div style="
-                        width:38px;
-                        height:38px;
-                        border-radius:50%;
-                        background:#f1f5f9;
+                <div
+                    style="
                         display:flex;
                         align-items:center;
-                        justify-content:center;
-                        font-size:16px;
-                    ">
-                        👤
-                    </div>
+                        gap:12px;
+                    "
+                >
+
+                    ${
+                        c.idImage
+                            ? `
+                                <img
+                                    src="${escapeHTML(c.idImage)}"
+                                    alt="ID"
+                                    style="
+                                        width:38px;
+                                        height:38px;
+                                        border-radius:50%;
+                                        object-fit:cover;
+                                        border:1px solid #e2e8f0;
+                                    "
+                                >
+                            `
+                            : `
+                                <div
+                                    style="
+                                        width:38px;
+                                        height:38px;
+                                        border-radius:50%;
+                                        background:#f1f5f9;
+                                        display:flex;
+                                        align-items:center;
+                                        justify-content:center;
+                                        font-size:16px;
+                                    "
+                                >
+                                    👤
+                                </div>
+                            `
+                    }
 
                     <div>
 
-                        <strong style="
-                            color:#0f172a;
-                            font-size:14px;
-                        ">
-                            ${escapeHTML(
-                                c.name
-                            )}
+                        <strong
+                            style="
+                                color:#0f172a;
+                                font-size:14px;
+                            "
+                        >
+                            ${escapeHTML(c.name)}
                         </strong>
 
-                        <div style="
-                            font-size:11px;
-                            color:#94a3b8;
-                        ">
+                        <div
+                            style="
+                                font-size:11px;
+                                color:#94a3b8;
+                            "
+                        >
                             Ref: #${1000 + i}
                         </div>
 
                     </div>
 
                 </div>
-
             </td>
 
-
             <td>
-
                 <strong>
                     ${escapeHTML(
                         c.phone || "-"
                     )}
                 </strong>
-
             </td>
 
-
             <td>
-
                 ${escapeHTML(
                     c.parentPhone || "-"
                 )}
-
             </td>
 
-
             <td>
-
                 <span class="location-badge">
-
                     Fl ${location.floor}
                     • Apt ${location.apartment}
                     • Rm ${location.room}
-
                 </span>
-
             </td>
 
-
             <td>
-
                 <b>
                     Bed ${location.bed}
                 </b>
-
             </td>
 
-
             <td>
-
                 <span class="status-pill-paid">
                     PAID
                 </span>
-
             </td>
         `;
 
-
-        body.appendChild(
-            tr
-        );
+        body.appendChild(tr);
     }
 
-
-    /* PAID COUNT */
-
     if (countElem) {
-
         countElem.innerText =
             paidCount;
     }
 
+    if (totalRevElem) {
 
-    /* TOTAL REVENUE */
-
-    if (canSeeRevenue()) {
-
-        if (totalRevElem) {
-
-            totalRevElem.style.display =
-                "";
-
-            totalRevElem.innerText =
-                formatCurrency(
+        totalRevElem.innerText =
+            canSeeRevenue()
+                ? formatCurrency(
                     paidCount *
                     MONTHLY_RENT
-                );
-        }
-
-        showElement(
-            "paidClientsRevenueCard"
-        );
-
-    } else {
-
-        if (totalRevElem) {
-
-            totalRevElem.innerText =
-                "";
-
-            totalRevElem.style.display =
-                "none";
-        }
-
-
-        hideElement(
-            "paidClientsRevenueCard"
-        );
+                )
+                : "";
     }
-
-
-    /* PAYMENT RATE */
 
     const rate =
         totalOccupied > 0
@@ -4802,33 +4246,22 @@ function renderPaidClients() {
             )
             : 0;
 
-
     if (rateElem) {
-
         rateElem.innerText =
             `${rate}%`;
     }
 
-
     filterPaidClients();
-
-    applyRoleUI();
 }
 
-
-/* =========================================================
-   PAID CLIENT FILTER
-   ========================================================= */
 
 function filterPaidClients() {
 
     const input =
         $("paidSearchInput");
 
-
     const floorSelect =
         $("paidFloorFilter");
-
 
     const filterText =
         input
@@ -4837,12 +4270,10 @@ function filterPaidClients() {
                 .trim()
             : "";
 
-
     const selectedFloor =
         floorSelect
             ? floorSelect.value
             : "all";
-
 
     document
         .querySelectorAll(
@@ -4857,13 +4288,10 @@ function filterPaidClients() {
                         filterText
                     );
 
-
             const floorMatch =
-                selectedFloor ===
-                    "all" ||
+                selectedFloor === "all" ||
                 row.dataset.floor ===
                     selectedFloor;
-
 
             row.style.display =
                 textMatch &&
@@ -4874,15 +4302,10 @@ function filterPaidClients() {
 }
 
 
-/* =========================================================
-   EXPORT PAID CLIENTS
-   ========================================================= */
-
 function exportPaidToCSV() {
 
     let csvContent =
         "data:text/csv;charset=utf-8,Name,Phone,Parent Phone,Location,Bed,Status\n";
-
 
     for (
         let i = 0;
@@ -4893,36 +4316,26 @@ function exportPaidToCSV() {
         const c =
             customers[i];
 
-
         if (
             !c ||
             c.paid !== "Paid"
-        )
+        ) {
             continue;
-
+        }
 
         const l =
             getLocation(i);
 
-
         const location =
             `Floor ${l.floor} Apt ${l.apartment} Room ${l.room}`;
 
-
         const row = [
-
             c.name,
-
             c.phone || "",
-
             c.parentPhone || "",
-
             location,
-
             `Bed ${l.bed}`,
-
             "Paid"
-
         ]
             .map(
                 value =>
@@ -4934,52 +4347,892 @@ function exportPaidToCSV() {
             )
             .join(",");
 
-
         csvContent +=
             row + "\n";
     }
-
 
     const encodedUri =
         encodeURI(
             csvContent
         );
 
-
     const link =
-        document.createElement(
-            "a"
-        );
-
+        document.createElement("a");
 
     link.setAttribute(
         "href",
         encodedUri
     );
 
-
     link.setAttribute(
         "download",
         `Paid_Clients_Report_${new Date()
             .toISOString()
-            .slice(
-                0,
-                10
-            )}.csv`
+            .slice(0, 10)}.csv`
     );
-
 
     document.body.appendChild(
         link
     );
 
-
     link.click();
-
 
     document.body.removeChild(
         link
     );
+}
+
+
+/* =========================================================
+   ADMIN — USER MANAGEMENT
+   ========================================================= */
+
+const USER_ROLES = [
+    "owner",
+    "admin",
+    "manager",
+    "staff",
+    "accountant",
+    "viewer"
+];
+
+
+const MANAGED_PERMISSIONS = [
+
+    [
+        "customers.read",
+        "View Residents"
+    ],
+
+    [
+        "customers.write",
+        "Add / Edit Residents"
+    ],
+
+    [
+        "customers.delete",
+        "Delete / Check-out Residents"
+    ],
+
+    [
+        "expenses.read",
+        "View Expenses"
+    ],
+
+    [
+        "expenses.write",
+        "Add Expenses"
+    ],
+
+    [
+        "expenses.delete",
+        "Delete Expenses"
+    ],
+
+    [
+        "revenue.read",
+        "View Revenue"
+    ],
+
+    [
+        "profit.read",
+        "View Profit"
+    ],
+
+    [
+        "paymentHistory.read",
+        "View Payment History"
+    ],
+
+    [
+        "paymentHistory.write",
+        "Delete Payment History"
+    ],
+
+    [
+        "reports.read",
+        "View Reports"
+    ],
+
+    [
+        "users.manage",
+        "Manage Users"
+    ]
+];
+
+
+let managedUsers = [];
+let editingUserId = null;
+
+
+function usersCollection() {
+
+    requirePermission(
+        "users.manage"
+    );
+
+    return collection(
+        db,
+        "users"
+    );
+}
+
+
+function userDoc(uid) {
+
+    requirePermission(
+        "users.manage"
+    );
+
+    return doc(
+        db,
+        "users",
+        uid
+    );
+}
+
+
+function defaultPermissionsForRole(
+    role
+) {
+
+    return getRoleDefaultPermissions(
+        role
+    );
+}
+
+
+async function loadUsers() {
+
+    try {
+
+        requirePermission(
+            "users.manage"
+        );
+
+        const snapshot =
+            await getDocs(
+                query(
+                    usersCollection(),
+                    where(
+                        "companyId",
+                        "==",
+                        currentCompanyId
+                    )
+                )
+            );
+
+        managedUsers =
+            snapshot.docs
+                .map(
+                    s => ({
+                        uid: s.id,
+                        ...s.data()
+                    })
+                )
+                .sort(
+                    (a, b) =>
+                        String(
+                            a.name ||
+                            a.email ||
+                            ""
+                        ).localeCompare(
+                            String(
+                                b.name ||
+                                b.email ||
+                                ""
+                            )
+                        )
+                );
+
+        renderUsers();
+
+    } catch (error) {
+
+        console.error(
+            "Could not load users:",
+            error
+        );
+
+        alert(
+            `Could not load users: ${firebaseErrorMessage(error)}`
+        );
+    }
+}
+
+
+function renderUsers() {
+
+    const body =
+        $("usersTableBody");
+
+    if (!body) return;
+
+    body.innerHTML = "";
+
+    managedUsers.forEach(
+        user => {
+
+            const tr =
+                document.createElement("tr");
+
+            const role =
+                escapeHTML(
+                    user.role ||
+                    "viewer"
+                );
+
+            const status =
+                user.status ===
+                "suspended"
+                    ? "Suspended"
+                    : "Active";
+
+            const isSelf =
+                auth.currentUser?.uid ===
+                user.uid;
+
+            const isOwner =
+                user.role ===
+                "owner";
+
+            tr.innerHTML = `
+
+                <td>
+
+                    <strong>
+                        ${escapeHTML(
+                            user.name ||
+                            "Unnamed User"
+                        )}
+                    </strong>
+
+                    <div
+                        style="
+                            font-size:12px;
+                            color:#94a3b8;
+                        "
+                    >
+                        ${escapeHTML(
+                            user.email ||
+                            "-"
+                        )}
+                    </div>
+
+                </td>
+
+                <td>
+
+                    <span
+                        class="user-role-badge role-${role}"
+                    >
+                        ${role.toUpperCase()}
+                    </span>
+
+                </td>
+
+                <td>
+
+                    <span
+                        class="user-status ${
+                            status === "Active"
+                                ? "active"
+                                : "suspended"
+                        }"
+                    >
+                        ${status}
+                    </span>
+
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        user.updatedAt
+                            ? "Updated"
+                            : ""
+                    )}
+                </td>
+
+                <td
+                    style="
+                        text-align:right;
+                        white-space:nowrap;
+                    "
+                >
+
+                    <button
+                        class="user-action-edit"
+                        onclick="editManagedUser('${escapeHTML(user.uid)}')"
+                    >
+                        ✏️ Edit
+                    </button>
+
+                    ${
+                        !isSelf &&
+                        !isOwner
+                            ? `
+                                <button
+                                    class="user-action-delete"
+                                    onclick="removeManagedUser('${escapeHTML(user.uid)}')"
+                                >
+                                    🗑 Remove
+                                </button>
+                            `
+                            : ""
+                    }
+
+                </td>
+            `;
+
+            body.appendChild(tr);
+        }
+    );
+
+    const empty =
+        $("usersEmptyState");
+
+    if (empty) {
+
+        empty.style.display =
+            managedUsers.length
+                ? "none"
+                : "block";
+    }
+}
+
+
+function openUserModal(
+    uid = null
+) {
+
+    requirePermission(
+        "users.manage"
+    );
+
+    editingUserId =
+        uid;
+
+    const modal =
+        $("userModal");
+
+    if (!modal) return;
+
+    const user =
+        uid
+            ? managedUsers.find(
+                u => u.uid === uid
+            )
+            : null;
+
+    $("userModalTitle").innerText =
+        user
+            ? "Edit User"
+            : "Add New User";
+
+    $("managedUserName").value =
+        user?.name || "";
+
+    $("managedUserEmail").value =
+        user?.email || "";
+
+    $("managedUserPassword").value =
+        "";
+
+    $("managedUserRole").value =
+        user?.role ||
+        "staff";
+
+    $("managedUserStatus").value =
+        user?.status === "suspended"
+            ? "suspended"
+            : "active";
+
+    renderPermissionEditor(
+        user?.permissions ||
+        defaultPermissionsForRole(
+            user?.role ||
+            "staff"
+        )
+    );
+
+    const email =
+        $("managedUserEmail");
+
+    const password =
+        $("managedUserPassword");
+
+    if (email) {
+        email.disabled =
+            !!user;
+    }
+
+    if (password) {
+        password.required =
+            !user;
+    }
+
+    modal.style.display =
+        "flex";
+}
+
+
+function closeUserModal() {
+
+    const modal =
+        $("userModal");
+
+    if (modal) {
+        modal.style.display =
+            "none";
+    }
+
+    editingUserId =
+        null;
+}
+
+
+function renderPermissionEditor(
+    permissions = {}
+) {
+
+    const container =
+        $("userPermissions");
+
+    if (!container) return;
+
+    container.innerHTML =
+        "";
+
+    MANAGED_PERMISSIONS.forEach(
+        ([key, label]) => {
+
+            const row =
+                document.createElement(
+                    "label"
+                );
+
+            row.className =
+                "permission-row";
+
+            row.innerHTML = `
+                <span>
+                    ${escapeHTML(label)}
+                </span>
+
+                <input
+                    type="checkbox"
+                    data-permission="${escapeHTML(key)}"
+                    ${
+                        permissions[key] === true
+                            ? "checked"
+                            : ""
+                    }
+                >
+            `;
+
+            container.appendChild(
+                row
+            );
+        }
+    );
+}
+
+
+function collectPermissions() {
+
+    const permissions = {};
+
+    document
+        .querySelectorAll(
+            "#userPermissions input[data-permission]"
+        )
+        .forEach(input => {
+
+            permissions[
+                input.dataset.permission
+            ] =
+                input.checked;
+        });
+
+    return permissions;
+}
+
+
+function applyRoleDefaultsToEditor() {
+
+    const role =
+        $("managedUserRole")
+            ?.value ||
+        "staff";
+
+    renderPermissionEditor(
+        defaultPermissionsForRole(
+            role
+        )
+    );
+}
+
+
+async function saveManagedUser() {
+
+    try {
+
+        requirePermission(
+            "users.manage"
+        );
+
+        const name =
+            $("managedUserName")
+                ?.value
+                .trim() ||
+            "";
+
+        const email =
+            $("managedUserEmail")
+                ?.value
+                .trim()
+                .toLowerCase() ||
+            "";
+
+        const password =
+            $("managedUserPassword")
+                ?.value ||
+            "";
+
+        const role =
+            $("managedUserRole")
+                ?.value ||
+            "staff";
+
+        const status =
+            $("managedUserStatus")
+                ?.value ===
+                "suspended"
+                    ? "suspended"
+                    : "active";
+
+        const permissions =
+            collectPermissions();
+
+        if (
+            !name ||
+            name.length > 120
+        ) {
+
+            throw new Error(
+                "Enter a valid user name."
+            );
+        }
+
+        if (
+            !/^\S+@\S+\.\S+$/.test(
+                email
+            )
+        ) {
+
+            throw new Error(
+                "Enter a valid email address."
+            );
+        }
+
+        if (
+            !USER_ROLES.includes(
+                role
+            )
+        ) {
+
+            throw new Error(
+                "Invalid role."
+            );
+        }
+
+        if (
+            !editingUserId &&
+            password.length < 8
+        ) {
+
+            throw new Error(
+                "Password must be at least 8 characters."
+            );
+        }
+
+
+        /* =====================================================
+           EDIT EXISTING USER
+           ===================================================== */
+
+        if (editingUserId) {
+
+            const existing =
+                managedUsers.find(
+                    u =>
+                        u.uid ===
+                        editingUserId
+                );
+
+            if (!existing) {
+
+                throw new Error(
+                    "User not found."
+                );
+            }
+
+            if (
+                editingUserId ===
+                    auth.currentUser.uid &&
+                role !== currentRole
+            ) {
+
+                throw new Error(
+                    "You cannot change your own role."
+                );
+            }
+
+            if (
+                existing.role ===
+                    "owner" &&
+                currentRole !==
+                    "owner"
+            ) {
+
+                throw new Error(
+                    "Only the Owner can modify the Owner account."
+                );
+            }
+
+            if (
+                role === "owner" &&
+                currentRole !==
+                    "owner"
+            ) {
+
+                throw new Error(
+                    "Only the Owner can assign the Owner role."
+                );
+            }
+
+            await updateDoc(
+                userDoc(
+                    editingUserId
+                ),
+                {
+                    name,
+                    role,
+                    status,
+                    permissions,
+
+                    updatedAt:
+                        serverTimestamp(),
+
+                    updatedBy:
+                        auth.currentUser.uid
+                }
+            );
+
+        }
+
+        /* =====================================================
+           CREATE NEW USER
+           ===================================================== */
+
+        else {
+
+            if (
+                role === "owner" &&
+                currentRole !==
+                    "owner"
+            ) {
+
+                throw new Error(
+                    "Only the Owner can create an Owner account."
+                );
+            }
+
+
+            /*
+             * Use a second Firebase Auth instance.
+             *
+             * This is important because otherwise
+             * createUserWithEmailAndPassword()
+             * would log the current Admin out.
+             */
+
+            const secondaryApp =
+                initializeApp(
+                    firebaseConfig,
+                    `userCreator-${Date.now()}`
+                );
+
+            const secondaryAuth =
+                getAuth(
+                    secondaryApp
+                );
+
+            const credential =
+                await createUserWithEmailAndPassword(
+                    secondaryAuth,
+                    email,
+                    password
+                );
+
+            const newUid =
+                credential.user.uid;
+
+
+            await setDoc(
+                doc(
+                    db,
+                    "users",
+                    newUid
+                ),
+                {
+                    name,
+                    email,
+                    role,
+                    status,
+
+                    companyId:
+                        currentCompanyId,
+
+                    permissions,
+
+                    createdAt:
+                        serverTimestamp(),
+
+                    createdBy:
+                        auth.currentUser.uid,
+
+                    updatedAt:
+                        serverTimestamp(),
+
+                    updatedBy:
+                        auth.currentUser.uid
+                }
+            );
+
+
+            await signOut(
+                secondaryAuth
+            );
+
+            closeUserModal();
+
+            alert(
+                "User created successfully. The user can now sign in with the email and password you assigned."
+            );
+
+            await loadUsers();
+
+            return;
+        }
+
+
+        closeUserModal();
+
+        await loadUsers();
+
+        alert(
+            "User permissions updated successfully."
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            `Could not save user: ${firebaseErrorMessage(error)}`
+        );
+    }
+}
+
+
+function editManagedUser(uid) {
+
+    openUserModal(uid);
+}
+
+
+function removeManagedUser(uid) {
+
+    try {
+
+        requirePermission(
+            "users.manage"
+        );
+
+        if (
+            uid ===
+            auth.currentUser?.uid
+        ) {
+
+            alert(
+                "You cannot remove your own account."
+            );
+
+            return;
+        }
+
+        const user =
+            managedUsers.find(
+                u =>
+                    u.uid === uid
+            );
+
+        if (!user) return;
+
+        if (
+            user.role === "owner" &&
+            currentRole !== "owner"
+        ) {
+
+            alert(
+                "Only the Owner can remove the Owner account."
+            );
+
+            return;
+        }
+
+        showConfirm(
+            `Remove access for ${
+                user.name ||
+                user.email
+            }?`,
+
+            async () => {
+
+                try {
+
+                    requirePermission(
+                        "users.manage"
+                    );
+
+                    await deleteDoc(
+                        userDoc(uid)
+                    );
+
+                    await loadUsers();
+
+                    alert(
+                        "User access removed. The Authentication account remains in Firebase but cannot enter this system without a user profile."
+                    );
+
+                } catch (error) {
+
+                    console.error(error);
+
+                    alert(
+                        `Could not remove user: ${firebaseErrorMessage(error)}`
+                    );
+                }
+            }
+        );
+
+    } catch (error) {
+
+        alert(
+            firebaseErrorMessage(error)
+        );
+    }
 }
 
 
@@ -4991,6 +5244,7 @@ window.addEventListener(
     "DOMContentLoaded",
     function () {
 
+        // Firebase Auth is the source of truth.
         checkAuthOnLoad();
 
 
@@ -5004,79 +5258,93 @@ window.addEventListener(
                         if (
                             e.key ===
                             "Enter"
-                        )
+                        ) {
                             login();
+                        }
                     }
                 );
         }
 
 
-        if (addExpenseBtn)
+        if (addExpenseBtn) {
             addExpenseBtn.onclick =
                 openExpenseModal;
+        }
 
 
-        if (saveExpenseBtn)
+        if (saveExpenseBtn) {
             saveExpenseBtn.onclick =
                 saveNewExpense;
+        }
 
 
-        if (cancelExpenseBtn)
+        if (cancelExpenseBtn) {
             cancelExpenseBtn.onclick =
                 closeExpenseModal;
+        }
+
+
+        if ($("managedUserRole")) {
+
+            $("managedUserRole")
+                .addEventListener(
+                    "change",
+                    applyRoleDefaultsToEditor
+                );
+        }
+
+
+        if ($("saveManagedUser")) {
+
+            $("saveManagedUser").onclick =
+                saveManagedUser;
+        }
+
+
+        if ($("cancelManagedUser")) {
+
+            $("cancelManagedUser").onclick =
+                closeUserModal;
+        }
 
 
         renderExpenses();
-
         updateDashboard();
     }
 );
 
 
-/* =========================================================
-   GLOBAL CLICK
-   ========================================================= */
-
 window.addEventListener(
     "click",
     function (e) {
 
-        if (
-            e.target === modal
-        )
+        if (e.target === modal) {
             modal.style.display =
                 "none";
+        }
 
-
-        if (
-            e.target === editModal
-        )
+        if (e.target === editModal) {
             editModal.style.display =
                 "none";
+        }
 
-
-        if (
-            e.target === confirmModal
-        )
+        if (e.target === confirmModal) {
             confirmModal.style.display =
                 "none";
+        }
 
-
-        if (
-            e.target === kpiModal
-        )
+        if (e.target === kpiModal) {
             kpiModal.style.display =
                 "none";
+        }
 
 
         const historyModal =
             $("historyModal");
 
-
         if (
             historyModal &&
-            e.target ===
-                historyModal
+            e.target === historyModal
         ) {
 
             historyModal.style.display =
@@ -5085,16 +5353,29 @@ window.addEventListener(
 
 
         if (
-            e.target ===
-            expenseModal
-        )
+            e.target === expenseModal
+        ) {
+
             closeExpenseModal();
+        }
+
+
+        const userModal =
+            $("userModal");
+
+        if (
+            userModal &&
+            e.target === userModal
+        ) {
+
+            closeUserModal();
+        }
     }
 );
 
 
 /* =========================================================
-   INLINE HTML FUNCTIONS
+   EXPOSE FUNCTIONS USED BY HTML
    ========================================================= */
 
 Object.assign(
@@ -5137,6 +5418,18 @@ Object.assign(
 
         deleteExpense,
 
-        copyPhone
+        copyPhone,
+
+        openUserModal,
+
+        closeUserModal,
+
+        saveManagedUser,
+
+        editManagedUser,
+
+        removeManagedUser,
+
+        applyRoleDefaultsToEditor
     }
 );
