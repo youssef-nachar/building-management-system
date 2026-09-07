@@ -101,6 +101,12 @@
         </header>
 
         <!-- Navigation Tabs -->
+<!-- ==========================
+     NAVIGATION TABS
+========================== -->
+<!-- ==========================
+     NAVIGATION TABS
+========================== -->
 <div class="tabs">
 
     <button class="tab-btn active" onclick="openTab('residents')">
@@ -113,7 +119,9 @@
         <span>Residents</span>
     </button>
 
-    <button class="tab-btn" onclick="openTab('finance')">
+    <button class="tab-btn"
+            data-finance-only
+            onclick="openTab('finance')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="5" width="18" height="14" rx="2"/>
@@ -123,7 +131,8 @@
         <span>Expenses & Finance</span>
     </button>
 
-    <button class="tab-btn" onclick="openTab('paidClients')">
+    <button class="tab-btn"
+            onclick="openTab('paidClients')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="9" cy="8" r="3"/>
@@ -134,8 +143,100 @@
         <span>Paid Clients</span>
     </button>
 
-</div>
+    <!-- ADMIN / OWNER ONLY -->
+    <button class="tab-btn"
+            data-admin-only
+            onclick="openTab('users')">
 
+        <svg viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="1.8"
+             stroke-linecap="round"
+             stroke-linejoin="round">
+
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+
+        </svg>
+
+        <span>User Management</span>
+
+    </button>
+
+</div>
+<div id="usersPage" style="display:none;">
+
+    <div class="finance-container paid-enterprise-container">
+
+        <div class="paid-header">
+
+            <div class="paid-title-group">
+
+                <div class="status-indicator-dot"></div>
+
+                <div>
+                    <h2>User Management</h2>
+
+                    <p class="paid-subtitle">
+                        Manage users, roles and individual permissions
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="export-actions-group">
+
+                <button
+                    class="btn-primary-print"
+                    onclick="openUserModal()">
+
+                    <span>Add User</span>
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="paid-table-card">
+
+            <table class="paid-table">
+
+                <thead>
+
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Permissions</th>
+                        <th>Actions</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="usersTableBody"></tbody>
+
+            </table>
+
+        </div>
+
+
+        <div
+            id="usersEmptyState"
+            style="display:none;padding:40px;text-align:center;color:#94a3b8;">
+
+            No users found.
+
+        </div>
+
+    </div>
+
+</div>
         <!-- Dashboard / Residents Page -->
         <div id="residentsPage">
             <section class="dashboard">
@@ -155,7 +256,7 @@
                     <h3>Unpaid</h3>
                     <span id="unpaidCustomers">0</span>
                 </div>
-<div class="card" data-finance-only>
+<div class="card" id="revenueCard" data-revenue-only>
     <h3>Revenue</h3>
     <h2 id="revenue">$0</h2>
 </div>
@@ -165,7 +266,11 @@
                 <div class="search-box">
                     <input id="searchInput" type="text" placeholder="Search by customer, floor, apartment, room or bed...">
                 </div>
-                <button class="history-btn" onclick="showHistory()">📄 Payment History</button>
+                <button class="history-btn"
+        data-payment-history-only
+        onclick="showHistory()">
+    📄 Payment History
+</button>
             </section>
 
             <main id="building"></main>
@@ -188,7 +293,9 @@
                     </div>
 
                     <div class="export-actions-group">
-                        <button class="btn-primary-print" id="addExpenseBtn">
+                        <button class="btn-primary-print"
+        id="addExpenseBtn"
+        data-expense-write-only>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <line x1="12" y1="5" x2="12" y2="19"/>
@@ -201,7 +308,9 @@
 
                 <!-- KPI Summary Cards -->
                 <div class="paid-kpi-grid">
-                    <div class="paid-kpi-card">
+                    <div class="paid-kpi-card"
+     id="financeRevenueCard"
+     data-revenue-only>
                         <div class="kpi-icon-wrapper emerald-bg">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -231,19 +340,24 @@
                         </div>
                     </div>
 
-                    <div class="paid-kpi-card">
-                        <div class="kpi-icon-wrapper blue-bg">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M20 7H5a3 3 0 0 1 0-6h13a2 2 0 0 1 2 2v16a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V4"/>
-    <path d="M20 12h-4a2 2 0 0 0 0 4h4"/>
-</svg>
-                        </div>
-                        <div class="kpi-details">
-                            <span class="kpi-label">Net Profit / Balance</span>
-                            <h1 id="financeProfit" class="kpi-value">$0</h1>
-                        </div>
-                    </div>
+   <div class="paid-kpi-card"
+     id="financeProfitCard"
+     data-revenue-only>
+
+    <div class="kpi-icon-wrapper blue-bg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 7H5a3 3 0 0 1 0-6h13a2 2 0 0 1 2 2v16a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V4"/>
+            <path d="M20 12h-4a2 2 0 0 0 0 4h4"/>
+        </svg>
+    </div>
+
+    <div class="kpi-details">
+        <span class="kpi-label">Net Profit / Balance</span>
+        <h1 id="financeProfit" class="kpi-value">$0</h1>
+    </div>
+
+</div>
                 </div>
 
                 <!-- Filters & Search Toolbar -->
@@ -325,16 +439,32 @@
                         </div>
                     </div>
 
-                    <div class="paid-kpi-card">
-                        <div class="kpi-icon-wrapper emerald-bg">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                        </div>
-                        <div class="kpi-details">
-                            <span class="kpi-label">Collected Revenue</span>
-                            <h1 id="paidClientsTotalRev" class="kpi-value text-emerald">$0</h1>
-                        </div>
-                    </div>
+<div class="paid-kpi-card"
+     id="paidClientsRevenueCard"
+     data-paid-revenue-only>
 
+    <div class="kpi-icon-wrapper emerald-bg">
+        <svg width="22" height="22"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="#059669"
+             stroke-width="2">
+
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+
+        </svg>
+    </div>
+
+    <div class="kpi-details">
+        <span class="kpi-label">Collected Revenue</span>
+        <h1 id="paidClientsTotalRev"
+            class="kpi-value text-emerald">
+            $0
+        </h1>
+    </div>
+
+</div>
                     <div class="paid-kpi-card">
                         <div class="kpi-icon-wrapper blue-bg">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -446,7 +576,223 @@
                 </div>
             </div>
         </div>
+<!-- ==========================================
+     USER MANAGEMENT MODAL
+========================================== -->
 
+<div id="userModal"
+     class="modal">
+
+    <div class="modal-content user-management-modal">
+
+        <div class="user-modal-header">
+
+            <div>
+                <h2 id="userModalTitle">
+                    Add New User
+                </h2>
+
+                <p>
+                    Create a user and assign individual permissions.
+                </p>
+            </div>
+
+            <button type="button"
+                    class="close-btn"
+                    onclick="closeUserModal()">
+                ✕
+            </button>
+
+        </div>
+
+
+        <!-- USER NAME -->
+
+        <div class="form-group-custom">
+
+            <label for="managedUserName">
+                Full Name
+            </label>
+
+            <input
+                id="managedUserName"
+                type="text"
+                maxlength="120"
+                placeholder="Enter full name">
+
+        </div>
+
+
+        <!-- EMAIL -->
+
+        <div class="form-group-custom">
+
+            <label for="managedUserEmail">
+                Email Address
+            </label>
+
+            <input
+                id="managedUserEmail"
+                type="email"
+                maxlength="160"
+                placeholder="user@example.com">
+
+        </div>
+
+
+        <!-- PASSWORD -->
+
+        <div class="form-group-custom"
+             id="managedPasswordGroup">
+
+            <label for="managedUserPassword">
+                Password
+            </label>
+
+            <input
+                id="managedUserPassword"
+                type="password"
+                minlength="8"
+                placeholder="Minimum 8 characters">
+
+            <small style="
+                color:#94a3b8;
+                display:block;
+                margin-top:6px;
+            ">
+                Password is required only when creating a new user.
+            </small>
+
+        </div>
+
+
+        <!-- ROLE -->
+
+        <div class="form-group-custom">
+
+            <label for="managedUserRole">
+                Role
+            </label>
+
+            <select id="managedUserRole">
+
+                <option value="staff">
+                    Staff
+                </option>
+
+                <option value="manager">
+                    Manager
+                </option>
+
+                <option value="accountant">
+                    Accountant
+                </option>
+
+                <option value="viewer">
+                    Viewer
+                </option>
+
+                <option value="admin">
+                    Admin
+                </option>
+
+                <option value="owner">
+                    Owner
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <!-- STATUS -->
+
+        <div class="form-group-custom">
+
+            <label for="managedUserStatus">
+                Status
+            </label>
+
+            <select id="managedUserStatus">
+
+                <option value="active">
+                    Active
+                </option>
+
+                <option value="suspended">
+                    Suspended
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <!-- PERMISSIONS -->
+
+        <div class="permissions-section">
+
+            <div class="permissions-title">
+
+                <div>
+                    <h3>
+                        Permissions
+                    </h3>
+
+                    <p>
+                        Select exactly what this user can access.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="permission-default-btn"
+                    onclick="applyRoleDefaultsToEditor()">
+
+                    Reset to Role Defaults
+
+                </button>
+
+            </div>
+
+
+            <div id="permissionEditor"
+                 class="permission-grid">
+
+                <!-- Generated by JavaScript -->
+
+            </div>
+
+        </div>
+
+
+        <!-- FOOTER -->
+
+        <div class="user-modal-footer">
+
+            <button
+                type="button"
+                class="btn-cancel"
+                onclick="closeUserModal()">
+
+                Cancel
+
+            </button>
+
+            <button
+                type="button"
+                class="btn-save"
+                onclick="saveManagedUser()">
+
+                Save User
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
         <!-- Confirm Modal -->
         <div id="confirmModal" class="modal">
             <div class="modal-content confirm-box">
