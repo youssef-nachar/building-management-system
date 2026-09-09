@@ -929,7 +929,132 @@ function customerDocId(index) {
 
     return `bed-${index}`;
 }
+/* =========================================================
+   ROOM / BOOKING HELPERS
+   ========================================================= */
 
+function getRoomBedIndexes(index) {
+    const i = Number(index);
+
+    if (!Number.isInteger(i) || i < 0 || i >= totalBeds) {
+        return [];
+    }
+
+    // Every room contains exactly 2 beds.
+    const firstBed =
+        Math.floor(i / beds) * beds;
+
+    return Array.from(
+        { length: beds },
+        (_, offset) => firstBed + offset
+    );
+}
+
+
+function getPrimaryIndex(index) {
+    const c = customers[index];
+
+    if (!c) {
+        return Number(index);
+    }
+
+    if (
+        c.bookingType === "full_room" &&
+        Number.isInteger(Number(c.primaryIndex))
+    ) {
+        return Number(c.primaryIndex);
+    }
+
+    return Number(index);
+}
+
+
+function isFullRoomCustomer(customer) {
+    return (
+        customer &&
+        customer.bookingType === "full_room"
+    );
+}
+
+
+function getBookingIndexes(index) {
+    const primaryIndex =
+        getPrimaryIndex(index);
+
+    const customer =
+        customers[primaryIndex] ||
+        customers[index];
+
+    if (
+        customer &&
+        customer.bookingType === "full_room" &&
+        Array.isArray(customer.roomBeds) &&
+        customer.roomBeds.length >= 2
+    ) {
+        return customer.roomBeds
+            .map(Number)
+            .filter(
+                i =>
+                    Number.isInteger(i) &&
+                    i >= 0 &&
+                    i < totalBeds
+            );
+    }
+
+    return [primaryIndex];
+}
+
+
+function getBookingPrice(customer) {
+    if (!customer) {
+        return 0;
+    }
+
+    if (
+        customer.bookingType === "full_room"
+    ) {
+        return MONTHLY_RENT * beds;
+    }
+
+    return MONTHLY_RENT;
+}
+
+
+function getUniqueBookings(sourceCustomers = customers) {
+    const bookings = [];
+    const processed = new Set();
+
+    for (
+        let i = 0;
+        i < sourceCustomers.length;
+        i++
+    ) {
+        const c =
+            sourceCustomers[i];
+
+        if (!c) {
+            continue;
+        }
+
+        const primaryIndex =
+            Number.isInteger(Number(c.primaryIndex))
+                ? Number(c.primaryIndex)
+                : i;
+
+        if (processed.has(primaryIndex)) {
+            continue;
+        }
+
+        processed.add(primaryIndex);
+
+        bookings.push({
+            ...c,
+            primaryIndex
+        });
+    }
+
+    return bookings;
+}
 
 function expenseCollection() {
 
@@ -1109,46 +1234,111 @@ for (
 }
 
 
-function openCustomerForBed(
-    button
-) {
+function openCustomerForBed(button) {
 
     selectedBed = button;
 
     const i =
-        Number(
-            button.dataset.index
-        );
+        Number(button.dataset.index);
 
     const customer =
         customers[i];
 
-
+    /*
+     * If this bed belongs to a full-room booking,
+     * always work with the primary customer record.
+     */
     if (customer) {
 
+        const primaryIndex =
+            getPrimaryIndex(i);
+
+        const primaryCustomer =
+            customers[primaryIndex] ||
+            customer;
+
         $("editName").value =
-            customer.name || "";
+            primaryCustomer.name || "";
 
         $("editPhone").value =
-            customer.phone || "";
+            primaryCustomer.phone || "";
 
         $("editPaid").value =
-            customer.paid || "Unpaid";
+            primaryCustomer.paid || "Unpaid";
 
         $("editParentPhone").value =
-            customer.parentPhone || "";
+            primaryCustomer.parentPhone || "";
+
+        const editBookingType =
+            $("editBookingType");
+
+        if (editBookingType) {
+            editBookingType.value =
+                primaryCustomer.bookingType ||
+                "single";
+        }
 
         editModal.style.display =
             "flex";
 
     } else {
 
+        const bookingType =
+            $("bookingType");
+
+        if (bookingType) {
+            bookingType.value =
+                "single";
+        }
+
         modal.style.display =
             "flex";
     }
 }
+function updateBookingTypeInfo() {
+
+    const select =
+        $("bookingType");
+
+    const info =
+        $("bookingTypeInfo");
+
+    if (!select || !info) {
+        return;
+    }
+
+    if (
+        select.value === "full_room"
+    ) {
+
+        info.innerHTML = `
+            <strong>🏠 Full Room</strong><br>
+            Both beds in this room will be reserved
+            for the same customer.<br>
+            Monthly rent:
+            <strong>${formatCurrency(
+            MONTHLY_RENT * beds
+        )}</strong>
+        `;
+
+    } else {
+
+        info.innerHTML = `
+            <strong>🛏️ Single Bed</strong><br>
+            Only the selected bed will be reserved.<br>
+            Monthly rent:
+            <strong>${formatCurrency(
+            MONTHLY_RENT
+        )}</strong>
+        `;
+    }
+}
 
 
+$("bookingType")?.addEventListener(
+    "change",
+    updateBookingTypeInfo
+);
 /* =========================================================
    AUTHENTICATION
    ========================================================= */
@@ -1234,7 +1424,7 @@ async function login() {
 
         try {
             await signOut(auth);
-        } catch (_) {}
+        } catch (_) { }
 
     } finally {
 
@@ -1335,7 +1525,7 @@ async function registerAccount() {
 
         try {
             await signOut(auth);
-        } catch (_) {}
+        } catch (_) { }
 
     } finally {
 
@@ -1945,120 +2135,352 @@ async function loadPaymentHistory() {
 /* =========================================================
    CUSTOMER CRUD — FIRESTORE + STORAGE
    ========================================================= */
-async function saveCustomerToFirebase(index, customer, imageFile = null) {
-    requireRole("owner", "admin", "staff");
+async function saveCustomerToFirebase(
+    index,
+    customer,
+    imageFile = null
+) {
 
-    let idImagePath = customer.idImagePath || null;
+    requireRole(
+        "owner",
+        "admin",
+        "staff"
+    );
 
-    if (imageFile) {
-        if (!["image/jpeg", "image/png", "image/webp"].includes(imageFile.type)) {
-            throw new Error("Only JPG, PNG, or WEBP images are allowed.");
-        }
+    const bookingType =
+        customer.bookingType === "full_room"
+            ? "full_room"
+            : "single";
 
-        if (imageFile.size > 2 * 1024 * 1024) {
-            throw new Error("ID image must be 2 MB or smaller.");
-        }
+    const roomBeds =
+        bookingType === "full_room"
+            ? getRoomBedIndexes(index)
+            : [Number(index)];
 
-        const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-
-        const imageRef = ref(
-            storage,
-            companyStoragePath(
-                "customer-images",
-                customerDocId(index),
-                `${Date.now()}-${safeName}`
-            )
+    /*
+     * Full room requires exactly two beds.
+     */
+    if (
+        bookingType === "full_room" &&
+        roomBeds.length !== 2
+    ) {
+        throw new Error(
+            "This room does not contain two beds."
         );
-
-        await uploadBytes(imageRef, imageFile, {
-            contentType: imageFile.type || "image/jpeg"
-        });
-
-        idImagePath = imageRef.fullPath;
     }
 
-    const data = {
+    /*
+     * Check that all required beds are available.
+     */
+    for (const bedIndex of roomBeds) {
+
+        const existing =
+            customers[bedIndex];
+
+        if (
+            existing &&
+            Number(bedIndex) !== Number(index)
+        ) {
+            throw new Error(
+                `Bed ${getLocation(bedIndex).bed} is already occupied.`
+            );
+        }
+    }
+
+    let idImagePath =
+        customer.idImagePath || null;
+
+    /*
+     * Upload ID image only once.
+     */
+    if (imageFile) {
+
+        if (
+            ![
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+            ].includes(imageFile.type)
+        ) {
+            throw new Error(
+                "Only JPG, PNG, or WEBP images are allowed."
+            );
+        }
+
+        if (
+            imageFile.size >
+            2 * 1024 * 1024
+        ) {
+            throw new Error(
+                "ID image must be 2 MB or smaller."
+            );
+        }
+
+        const safeName =
+            imageFile.name.replace(
+                /[^a-zA-Z0-9._-]/g,
+                "_"
+            );
+
+        const imageRef =
+            ref(
+                storage,
+                companyStoragePath(
+                    "customer-images",
+                    customerDocId(index),
+                    `${Date.now()}-${safeName}`
+                )
+            );
+
+        await uploadBytes(
+            imageRef,
+            imageFile,
+            {
+                contentType:
+                    imageFile.type ||
+                    "image/jpeg"
+            }
+        );
+
+        idImagePath =
+            imageRef.fullPath;
+    }
+
+    const primaryIndex =
+        Number(index);
+
+    const roomKey =
+        `room-${Math.floor(
+            primaryIndex / beds
+        )}`;
+
+    const baseData = {
+
         ...customer,
-        index,
+
+        bookingType,
+
+        roomBeds,
+
+        roomKey,
+
+        primaryIndex,
+
         idImagePath,
+
         idImage: null,
-        updatedAt: serverTimestamp(),
-        updatedBy: auth.currentUser.uid
+
+        updatedAt:
+            serverTimestamp(),
+
+        updatedBy:
+            auth.currentUser.uid
     };
 
-    await setDoc(
-        companyDoc("customers", customerDocId(index)),
-        data
-    );
-}
+    /*
+     * Use a batch so both beds are saved together.
+     */
+    const batch =
+        writeBatch(db);
 
+    roomBeds.forEach(
+        bedIndex => {
+
+            const bedData = {
+
+                ...baseData,
+
+                index:
+                    bedIndex,
+
+                primaryIndex,
+
+                isPrimary:
+                    bedIndex ===
+                    primaryIndex
+            };
+
+            batch.set(
+                companyDoc(
+                    "customers",
+                    customerDocId(
+                        bedIndex
+                    )
+                ),
+                bedData
+            );
+        }
+    );
+
+    await batch.commit();
+}
 
 if (saveBtn) {
-    saveBtn.onclick = async function () {
-        try {
-            requireFirebase();
 
-            const parentPhone =
-                $("customerParentPhone")?.value.trim() || "";
+    saveBtn.onclick =
+        async function () {
 
-            const name =
-                $("customerName")?.value.trim() || "";
+            try {
 
-            const phone =
-                $("customerPhone")?.value.trim() || "";
+                requireFirebase();
 
-            const fileInput =
-                $("customerIdImage");
+                const parentPhone =
+                    $("customerParentPhone")
+                        ?.value
+                        .trim() || "";
 
-            if (!name || name.length > 120) {
-                alert(
-                    "Customer name is required and must be 120 characters or fewer."
-                );
-                return;
-            }
+                const name =
+                    $("customerName")
+                        ?.value
+                        .trim() || "";
 
-            if (phone.length > 40 || parentPhone.length > 40) {
-                alert("Phone numbers are too long.");
-                return;
-            }
+                const phone =
+                    $("customerPhone")
+                        ?.value
+                        .trim() || "";
 
-            if (!selectedBed) {
-                alert("Please select a bed.");
-                return;
-            }
+                const bookingType =
+                    $("bookingType")
+                        ?.value ||
+                    "single";
 
-            const i = Number(selectedBed.dataset.index);
-            const file = fileInput?.files?.[0] || null;
+                if (!name) {
 
-            saveBtn.disabled = true;
-            saveBtn.innerText = "Saving...";
+                    alert(
+                        "Please enter the customer name."
+                    );
 
-            await saveCustomerToFirebase(
-                i,
-                {
+                    return;
+                }
+
+                if (!selectedBed) {
+
+                    alert(
+                        "Please select a bed."
+                    );
+
+                    return;
+                }
+
+                const index =
+                    Number(
+                        selectedBed.dataset.index
+                    );
+
+                const roomBeds =
+                    bookingType === "full_room"
+                        ? getRoomBedIndexes(index)
+                        : [index];
+
+                /*
+                 * Make sure both beds are free
+                 * when booking a full room.
+                 */
+                for (
+                    const bedIndex of roomBeds
+                ) {
+
+                    if (
+                        customers[bedIndex]
+                    ) {
+
+                        alert(
+                            `Bed ${getLocation(bedIndex).bed} is already occupied.`
+                        );
+
+                        return;
+                    }
+                }
+
+                /*
+                 * Full room must start from Bed 1.
+                 * This avoids weird cases where the user
+                 * selects Bed 2 and tries to create a room.
+                 */
+                if (
+                    bookingType === "full_room" &&
+                    getLocation(index).bed !== 1
+                ) {
+
+                    alert(
+                        "Please select Bed 1 when booking a full room."
+                    );
+
+                    return;
+                }
+
+                const imageFile =
+                    $("customerIdImage")
+                        ?.files?.[0] ||
+                    null;
+
+                const customer = {
+
                     name,
+
                     phone,
+
                     parentPhone,
-                    paid: "Unpaid",
-                    date: new Date().toISOString()
-                },
-                file
-            );
 
-            finishSave();
+                    paid:
+                        "Unpaid",
 
-        } catch (error) {
-            console.error(error);
-            alert(
-                `Could not save customer: ${firebaseErrorMessage(error)}`
-            );
-        } finally {
-            saveBtn.disabled = false;
-            saveBtn.innerText = "Save Customer";
-        }
-    };
+                    bookingType,
+
+                    roomBeds,
+
+                    date:
+                        new Date().toISOString()
+                };
+
+                await saveCustomerToFirebase(
+                    index,
+                    customer,
+                    imageFile
+                );
+
+                modal.style.display =
+                    "none";
+
+                /*
+                 * Clear form.
+                 */
+                if ($("customerName")) {
+                    $("customerName").value = "";
+                }
+
+                if ($("customerPhone")) {
+                    $("customerPhone").value = "";
+                }
+
+                if ($("customerParentPhone")) {
+                    $("customerParentPhone").value = "";
+                }
+
+                if ($("customerIdImage")) {
+                    $("customerIdImage").value = "";
+                }
+
+                if ($("bookingType")) {
+                    $("bookingType").value =
+                        "single";
+                }
+
+                selectedBed = null;
+
+            } catch (error) {
+
+                console.error(
+                    "Save customer failed:",
+                    error
+                );
+
+                alert(
+                    `Save failed: ${firebaseErrorMessage(error)}`
+                );
+            }
+        };
 }
-
 
 function finishSave() {
     modal.style.display = "none";
@@ -2104,51 +2526,116 @@ if ($("cancelEdit")) {
 
 
 if (checkoutBtn) {
-    checkoutBtn.onclick = function () {
-        if (!selectedBed) return;
 
-        showConfirm(
-            "Are you sure you want to check out this customer?",
-            async () => {
-                try {
-                    requireRole("owner", "admin", "staff");
+    checkoutBtn.onclick =
+        async function () {
 
-                    const i =
-                        Number(selectedBed.dataset.index);
+            try {
 
-                    const customer = customers[i];
+                requireRole(
+                    "owner",
+                    "admin",
+                    "staff"
+                );
 
-                    if (!customer) return;
-
-                    await deleteDoc(
-                        companyDoc(
-                            "customers",
-                            customerDocId(i)
-                        )
-                    );
-
-                    selectedBed.className = "available";
-                    selectedBed.innerHTML =
-                        selectedBed.dataset.bedName;
-
-                    selectedBed.disabled = false;
-
-                    editModal.style.display = "none";
-
-                    updateDashboard();
-
-                } catch (error) {
-                    console.error(error);
+                if (!selectedBed) {
 
                     alert(
-                        `Checkout failed: ${firebaseErrorMessage(error)}`
+                        "No bed selected."
                     );
-                }
-            }
-        );
-    };
-}
 
+                    return;
+                }
+
+                const selectedIndex =
+                    Number(
+                        selectedBed.dataset.index
+                    );
+
+                const primaryIndex =
+                    getPrimaryIndex(
+                        selectedIndex
+                    );
+
+                const customer =
+                    customers[primaryIndex];
+
+                if (!customer) {
+
+                    alert(
+                        "Customer not found."
+                    );
+
+                    return;
+                }
+
+                const bookingIndexes =
+                    getBookingIndexes(
+                        primaryIndex
+                    );
+
+                const message =
+                    customer.bookingType ===
+                        "full_room"
+
+                        ? `Checkout ${customer.name} and release the entire room?`
+
+                        : `Checkout ${customer.name}?`;
+
+                showConfirm(
+                    message,
+                    async () => {
+
+                        try {
+
+                            const batch =
+                                writeBatch(db);
+
+                            bookingIndexes.forEach(
+                                bedIndex => {
+
+                                    batch.delete(
+                                        companyDoc(
+                                            "customers",
+                                            customerDocId(
+                                                bedIndex
+                                            )
+                                        )
+                                    );
+                                }
+                            );
+
+                            await batch.commit();
+
+                            editModal.style.display =
+                                "none";
+
+                            selectedBed = null;
+
+                        } catch (error) {
+
+                            console.error(
+                                "Checkout failed:",
+                                error
+                            );
+
+                            alert(
+                                `Checkout failed: ${firebaseErrorMessage(error)}`
+                            );
+                        }
+                    }
+                );
+
+            } catch (error) {
+
+                console.error(error);
+
+                alert(
+                    firebaseErrorMessage(error)
+                );
+            }
+        };
+}
 
 if (updateBtn) {
     updateBtn.onclick = async function () {
@@ -2255,58 +2742,96 @@ function loadCustomers() {
 
 function updateDashboard() {
 
-    let occupied = 0;
-    let paid = 0;
-    let unpaid = 0;
+    let occupiedBeds = 0;
+
+    let paidCustomers = 0;
+
+    let unpaidCustomers = 0;
+
     let revenue = 0;
 
-    for (let i = 0; i < customers.length; i++) {
-
-        const c = customers[i];
+    /*
+     * Count beds separately.
+     */
+    customers.forEach(c => {
 
         if (c) {
+            occupiedBeds++;
+        }
 
-            occupied++;
+    });
 
-            if (c.paid === "Paid") {
-                paid++;
-                revenue += MONTHLY_RENT;
+    /*
+     * Count customers/bookings only once.
+     */
+    const bookings =
+        getUniqueBookings();
+
+    bookings.forEach(
+        customer => {
+
+            if (
+                customer.paid === "Paid"
+            ) {
+
+                paidCustomers++;
+
+                revenue +=
+                    getBookingPrice(
+                        customer
+                    );
+
             } else {
-                unpaid++;
+
+                unpaidCustomers++;
             }
         }
-    }
+    );
 
     if ($("occupiedBeds")) {
-        $("occupiedBeds").innerText = occupied;
+
+        $("occupiedBeds").innerText =
+            occupiedBeds;
     }
 
     if ($("availableBeds")) {
+
         $("availableBeds").innerText =
-            totalBeds - occupied;
+            totalBeds -
+            occupiedBeds;
     }
 
     if ($("paidCustomers")) {
-        $("paidCustomers").innerText = paid;
+
+        $("paidCustomers").innerText =
+            paidCustomers;
     }
 
     if ($("unpaidCustomers")) {
-        $("unpaidCustomers").innerText = unpaid;
+
+        $("unpaidCustomers").innerText =
+            unpaidCustomers;
     }
 
     if ($("revenue")) {
+
         $("revenue").innerText =
             canSeeRevenue()
-                ? formatCurrency(revenue)
+                ? formatCurrency(
+                    revenue
+                )
                 : "";
     }
 
     updateFinanceDashboard();
+
     renderPaidClients();
 }
 
-
-async function setCustomerPaid(index, status) {
+async function setCustomerPaid(
+    index,
+    status
+) {
 
     requireRole(
         "owner",
@@ -2314,50 +2839,86 @@ async function setCustomerPaid(index, status) {
         "staff"
     );
 
-    const customer =
-        customers[index];
+    const primaryIndex =
+        getPrimaryIndex(index);
 
-    if (!customer) return;
+    const customer =
+        customers[primaryIndex];
+
+    if (!customer) {
+        return;
+    }
 
     const safeStatus =
         status === "Paid"
             ? "Paid"
             : "Unpaid";
 
-    await updateDoc(
-        companyDoc(
-            "customers",
-            customerDocId(index)
-        ),
-        {
-            paid: safeStatus,
+    const bookingIndexes =
+        getBookingIndexes(
+            primaryIndex
+        );
 
-            paymentUpdatedAt:
-                serverTimestamp(),
+    const batch =
+        writeBatch(db);
 
-            paymentUpdatedBy:
-                auth.currentUser.uid
+    bookingIndexes.forEach(
+        bedIndex => {
+
+            batch.update(
+                companyDoc(
+                    "customers",
+                    customerDocId(
+                        bedIndex
+                    )
+                ),
+                {
+
+                    paid:
+                        safeStatus,
+
+                    paymentUpdatedAt:
+                        serverTimestamp(),
+
+                    paymentUpdatedBy:
+                        auth.currentUser.uid
+                }
+            );
         }
     );
 
+    await batch.commit();
+
     if (canSeeRevenue()) {
+
         await saveMonthlyPaidRecord();
     }
 }
 
+function togglePaid(
+    button,
+    index
+) {
 
-function togglePaid(button, index) {
+    const primaryIndex =
+        getPrimaryIndex(index);
 
-    if (!customers[index]) return;
+    const customer =
+        customers[primaryIndex];
+
+    if (!customer) {
+        return;
+    }
 
     const nextStatus =
-        customers[index].paid === "Paid"
+        customer.paid === "Paid"
             ? "Unpaid"
             : "Paid";
 
     showConfirm(
+
         `Change ${escapeHTML(
-            customers[index].name
+            customer.name
         )} to ${nextStatus}?`,
 
         async () => {
@@ -2365,7 +2926,7 @@ function togglePaid(button, index) {
             try {
 
                 await setCustomerPaid(
-                    index,
+                    primaryIndex,
                     nextStatus
                 );
 
@@ -2380,7 +2941,6 @@ function togglePaid(button, index) {
         }
     );
 }
-
 
 function createPaidButton(index) {
 
@@ -2477,7 +3037,6 @@ async function getSecureImageUrl(path) {
     }
 }
 
-
 async function updateBedUI(index) {
 
     const button =
@@ -2485,15 +3044,38 @@ async function updateBedUI(index) {
             `[data-index="${index}"]`
         );
 
-    if (!button) return;
+    if (!button) {
+        return;
+    }
 
     const c =
         customers[index];
 
+    /*
+     * =====================================================
+     * RESET VISUAL STATE
+     * =====================================================
+     */
+
+    button.style.display = "";
+    button.style.gridColumn = "";
+    button.classList.remove(
+        "full-room-occupied-card",
+        "full-room-paid",
+        "full-room-unpaid",
+        "full-room-hidden-bed"
+    );
+
+
+    /*
+     * =====================================================
+     * EMPTY BED
+     * =====================================================
+     */
+
     if (!c) {
 
-        button.className =
-            "available";
+        button.className = "available";
 
         button.innerHTML =
             escapeHTML(
@@ -2505,6 +3087,239 @@ async function updateBedUI(index) {
         return;
     }
 
+
+    /*
+     * =====================================================
+     * FULL ROOM
+     * =====================================================
+     */
+
+    if (
+        c.bookingType === "full_room"
+    ) {
+
+        const primaryIndex =
+            getPrimaryIndex(index);
+
+        const roomBeds =
+            getBookingIndexes(
+                primaryIndex
+            );
+
+        /*
+         * Only the PRIMARY bed renders
+         * the large card.
+         */
+        if (
+            Number(index) !==
+            Number(primaryIndex)
+        ) {
+
+            button.className =
+                "full-room-hidden-bed";
+
+            button.style.display =
+                "none";
+
+            return;
+        }
+
+
+        /*
+         * Find the second bed.
+         */
+        const secondBedIndex =
+            roomBeds.find(
+                bedIndex =>
+                    Number(bedIndex) !==
+                    Number(primaryIndex)
+            );
+
+
+        const secondButton =
+            secondBedIndex !== undefined
+                ? document.querySelector(
+                    `[data-index="${secondBedIndex}"]`
+                )
+                : null;
+
+
+        /*
+         * Hide Bed 2 because the room
+         * is represented by ONE card.
+         */
+        if (secondButton) {
+
+            secondButton.classList.add(
+                "full-room-hidden-bed"
+            );
+
+            secondButton.style.display =
+                "none";
+        }
+
+
+        /*
+         * Main card
+         */
+        button.className =
+            "occupied full-room-occupied-card " +
+            (
+                c.paid === "Paid"
+                    ? "full-room-paid"
+                    : "full-room-unpaid"
+            );
+
+
+        button.style.gridColumn =
+            "1 / -1";
+
+        button.disabled = false;
+
+
+        /*
+         * Room information
+         */
+        const location =
+            getLocation(primaryIndex);
+
+
+        const price =
+            MONTHLY_RENT * beds;
+
+
+        button.innerHTML = `
+
+            <div class="full-room-room-badge">
+                🏠 FULL ROOM
+            </div>
+
+            <div class="full-room-room-name">
+                ${escapeHTML(
+                    c.name || "Customer"
+                )}
+            </div>
+
+            <div class="full-room-room-details">
+
+                📞 ${escapeHTML(
+                    c.phone || "-"
+                )}
+
+                <br>
+
+                Parent:
+                ${escapeHTML(
+                    c.parentPhone || "-"
+                )}
+
+                <br>
+
+                Floor ${location.floor}
+                • Apartment ${location.apartment}
+                • Room ${location.room}
+
+            </div>
+
+            <div class="full-room-room-footer">
+
+                <span
+                    class="full-room-room-status ${
+                        c.paid === "Paid"
+                            ? "paid"
+                            : "unpaid"
+                    }"
+                >
+                    ${
+                        c.paid === "Paid"
+                            ? "✓ PAID"
+                            : "⚠ UNPAID"
+                    }
+                </span>
+
+                <span class="full-room-room-rent">
+                    $${price} / Month
+                </span>
+
+            </div>
+
+        `;
+
+
+        /*
+         * Load ID image
+         */
+        const imagePath =
+            c.idImagePath;
+
+        if (imagePath) {
+
+            const url =
+                await getSecureImageUrl(
+                    imagePath
+                );
+
+            if (
+                url &&
+                customers[primaryIndex] === c
+            ) {
+
+                const img =
+                    document.createElement(
+                        "img"
+                    );
+
+                img.src = url;
+
+                img.alt = "ID";
+
+                img.style.cssText = `
+                    width:52px;
+                    height:52px;
+                    border-radius:12px;
+                    object-fit:cover;
+                    margin-bottom:8px;
+                    border:2px solid rgba(255,255,255,.35);
+                `;
+
+                /*
+                 * Put image before the badge.
+                 */
+                button.prepend(img);
+            }
+        }
+
+
+        /*
+         * Paid / Unpaid button
+         *
+         * It uses the PRIMARY index,
+         * therefore payment changes apply
+         * to both beds.
+         */
+        const paidButton =
+            createPaidButton(
+                primaryIndex
+            );
+
+        paidButton.classList.add(
+            "full-room-room-paid-btn"
+        );
+
+        button.appendChild(
+            paidButton
+        );
+
+        return;
+    }
+
+
+    /*
+     * =====================================================
+     * NORMAL SINGLE BED
+     * =====================================================
+     */
+
     button.disabled = false;
 
     button.className =
@@ -2512,13 +3327,40 @@ async function updateBedUI(index) {
             ? "occupied unpaid-card"
             : "occupied paid-card";
 
+
     button.innerHTML = `
-        <b>${escapeHTML(c.name)}</b><br>
-        ${escapeHTML(c.phone || "-")}<br>
-        Parent: ${escapeHTML(c.parentPhone || "-")}<br>
-        ${escapeHTML(c.date || "-")}<br>
+
+        <b>
+            ${escapeHTML(
+                c.name || "Customer"
+            )}
+        </b>
+
+        <br>
+
+        ${escapeHTML(
+            c.phone || "-"
+        )}
+
+        <br>
+
+        Parent:
+        ${escapeHTML(
+            c.parentPhone || "-"
+        )}
+
+        <br>
+
+        ${escapeHTML(
+            c.date || "-"
+        )}
+
     `;
 
+
+    /*
+     * Load ID image
+     */
     const imagePath =
         c.idImagePath;
 
@@ -2535,209 +3377,534 @@ async function updateBedUI(index) {
         ) {
 
             const img =
-                document.createElement("img");
+                document.createElement(
+                    "img"
+                );
 
             img.src = url;
+
             img.alt = "ID";
 
-            img.style.cssText =
-                "width:40px;height:40px;border-radius:6px;object-fit:cover;";
+            img.style.cssText = `
+                width:40px;
+                height:40px;
+                border-radius:6px;
+                object-fit:cover;
+                margin-bottom:5px;
+            `;
 
             button.prepend(img);
         }
     }
 
+
     button.appendChild(
         createPaidButton(index)
     );
 }
-
-
 function showKpi(type) {
+    const kpiTitle = $("kpiTitle");
+    const kpiList = $("kpiList");
 
-    const kpiTitle =
-        $("kpiTitle");
-
-    const kpiList =
-        $("kpiList");
+    if (!kpiTitle || !kpiList) return;
 
     kpiList.innerHTML = "";
 
     let title = "";
-
     const list = [];
 
-    for (
-        let i = 0;
-        i < customers.length;
-        i++
-    ) {
+    /*
+     * =====================================================
+     * AVAILABLE
+     * =====================================================
+     */
+    if (type === "available") {
 
-        const c =
-            customers[i];
+        for (let i = 0; i < customers.length; i++) {
 
-        const location =
-            getLocation(i);
+            if (!customers[i]) {
 
-        if (
-            type === "available" &&
-            !c
-        ) {
+                const location = getLocation(i);
+
+                list.push({
+                    type: "available",
+                    ...location,
+                    index: i
+                });
+            }
+        }
+
+        title = "Available Beds";
+    }
+
+    /*
+     * =====================================================
+     * OCCUPIED
+     *
+     * Full Room = ONE card only
+     * Single Bed = ONE card
+     * =====================================================
+     */
+    else if (type === "occupied") {
+
+        const processedBookings = new Set();
+
+        for (let i = 0; i < customers.length; i++) {
+
+            const c = customers[i];
+
+            if (!c) continue;
+
+            /*
+             * FULL ROOM
+             */
+            if (c.bookingType === "full_room") {
+
+                /*
+                 * Use bookingId when available.
+                 * This prevents Bed 1 and Bed 2
+                 * from becoming two cards.
+                 */
+                const bookingKey =
+                    c.bookingId ||
+                    `full-room-${c.primaryIndex ?? Math.floor(i / beds) * beds}`;
+
+                if (processedBookings.has(bookingKey)) {
+                    continue;
+                }
+
+                processedBookings.add(bookingKey);
+
+                const primaryIndex =
+                    Number.isInteger(Number(c.primaryIndex))
+                        ? Number(c.primaryIndex)
+                        : Math.floor(i / beds) * beds;
+
+                const location =
+                    getLocation(primaryIndex);
+
+                list.push({
+                    ...c,
+                    ...location,
+
+                    type: "occupied",
+
+                    bookingType: "full_room",
+
+                    primaryIndex,
+
+                    roomBeds: Array.isArray(c.roomBeds)
+                        ? c.roomBeds
+                        : [primaryIndex, primaryIndex + 1]
+                });
+
+                continue;
+            }
+
+            /*
+             * SINGLE BED
+             */
+            const bookingKey =
+                `single-${i}`;
+
+            if (processedBookings.has(bookingKey)) {
+                continue;
+            }
+
+            processedBookings.add(bookingKey);
+
+            const location =
+                getLocation(i);
 
             list.push({
-                type: "available",
+                ...c,
                 ...location,
-                index: i
+
+                type: "occupied",
+
+                bookingType: "single",
+
+                primaryIndex: i
             });
         }
 
-        if (c) {
+        title = "Occupied Customers";
+    }
 
-            if (
-                type === "occupied"
-            ) {
-                list.push({
-                    ...c,
-                    ...location
-                });
+    /*
+     * =====================================================
+     * PAID
+     * =====================================================
+     */
+    else if (type === "paid") {
+
+        const processedBookings = new Set();
+
+        for (let i = 0; i < customers.length; i++) {
+
+            const c = customers[i];
+
+            if (!c || c.paid !== "Paid") {
+                continue;
             }
 
-            if (
-                type === "paid" &&
-                c.paid === "Paid"
-            ) {
-                list.push({
-                    ...c,
-                    ...location
-                });
-            }
+            if (c.bookingType === "full_room") {
 
-            if (
-                type === "unpaid" &&
-                c.paid !== "Paid"
-            ) {
+                const bookingKey =
+                    c.bookingId ||
+                    `full-room-${c.primaryIndex ?? Math.floor(i / beds) * beds}`;
+
+                if (processedBookings.has(bookingKey)) {
+                    continue;
+                }
+
+                processedBookings.add(bookingKey);
+
+                const primaryIndex =
+                    Number.isInteger(Number(c.primaryIndex))
+                        ? Number(c.primaryIndex)
+                        : Math.floor(i / beds) * beds;
+
                 list.push({
                     ...c,
-                    ...location
+                    ...getLocation(primaryIndex),
+                    type: "paid",
+                    bookingType: "full_room",
+                    primaryIndex
+                });
+
+            } else {
+
+                const bookingKey = `single-${i}`;
+
+                if (processedBookings.has(bookingKey)) {
+                    continue;
+                }
+
+                processedBookings.add(bookingKey);
+
+                list.push({
+                    ...c,
+                    ...getLocation(i),
+                    type: "paid",
+                    bookingType: "single",
+                    primaryIndex: i
                 });
             }
         }
+
+        title = "Paid Customers";
     }
 
-    if (type === "occupied") {
-        title =
-            "Occupied Customers";
+    /*
+     * =====================================================
+     * UNPAID
+     * =====================================================
+     */
+    else if (type === "unpaid") {
+
+        const processedBookings = new Set();
+
+        for (let i = 0; i < customers.length; i++) {
+
+            const c = customers[i];
+
+            if (!c || c.paid === "Paid") {
+                continue;
+            }
+
+            if (c.bookingType === "full_room") {
+
+                const bookingKey =
+                    c.bookingId ||
+                    `full-room-${c.primaryIndex ?? Math.floor(i / beds) * beds}`;
+
+                if (processedBookings.has(bookingKey)) {
+                    continue;
+                }
+
+                processedBookings.add(bookingKey);
+
+                const primaryIndex =
+                    Number.isInteger(Number(c.primaryIndex))
+                        ? Number(c.primaryIndex)
+                        : Math.floor(i / beds) * beds;
+
+                list.push({
+                    ...c,
+                    ...getLocation(primaryIndex),
+                    type: "unpaid",
+                    bookingType: "full_room",
+                    primaryIndex
+                });
+
+            } else {
+
+                const bookingKey = `single-${i}`;
+
+                if (processedBookings.has(bookingKey)) {
+                    continue;
+                }
+
+                processedBookings.add(bookingKey);
+
+                list.push({
+                    ...c,
+                    ...getLocation(i),
+                    type: "unpaid",
+                    bookingType: "single",
+                    primaryIndex: i
+                });
+            }
+        }
+
+        title = "Unpaid Customers";
     }
 
-    if (type === "available") {
-        title =
-            "Available Beds";
-    }
+    kpiTitle.innerText = title;
 
-    if (type === "paid") {
-        title =
-            "Paid Customers";
-    }
-
-    if (type === "unpaid") {
-        title =
-            "Unpaid Customers";
-    }
-
-    kpiTitle.innerText =
-        title;
-
+    /*
+     * =====================================================
+     * RENDER CARDS
+     * =====================================================
+     */
     list.forEach(item => {
 
         const div =
             document.createElement("div");
 
-        div.className =
-            "kpi-item";
+        /*
+         * Full Room gets a special larger card
+         */
+        if (item.bookingType === "full_room") {
 
-        if (
-            item.type === "available"
-        ) {
+            div.className =
+                "kpi-item full-room-kpi-card";
+
+            const roomBeds =
+                Array.isArray(item.roomBeds)
+                    ? item.roomBeds
+                    : [];
+
+            const bedText =
+                roomBeds.length >= 2
+                    ? `Beds ${roomBeds.map(b => getLocation(b).bed).join(" + ")}`
+                    : "Full Room";
+
+            const price =
+                MONTHLY_RENT * beds;
 
             div.innerHTML = `
-                <div class="kpi-title">
-                    🛏 Empty Bed
+
+                <div class="full-room-kpi-header">
+
+                    <div>
+
+                        <div class="full-room-kpi-title">
+                            🏠 ${escapeHTML(item.name || "Customer")}
+                        </div>
+
+                        <div class="full-room-kpi-subtitle">
+                            FULL ROOM
+                        </div>
+
+                    </div>
+
+                    <div class="
+                        full-room-kpi-status
+                        ${item.paid === "Paid"
+                    ? "paid"
+                    : "unpaid"
+                }
+                    ">
+                        ${escapeHTML(item.paid || "Unpaid")}
+                    </div>
+
                 </div>
 
-                <div class="kpi-row">
-                    <span>Floor</span>
-                    <b>${item.floor}</b>
+
+                <div class="full-room-kpi-grid">
+
+                    <div class="full-room-kpi-info">
+
+                        <span>Floor</span>
+
+                        <strong>
+                            ${item.floor}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="full-room-kpi-info">
+
+                        <span>Apartment</span>
+
+                        <strong>
+                            ${item.apartment}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="full-room-kpi-info">
+
+                        <span>Room</span>
+
+                        <strong>
+                            Room ${item.room}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="full-room-kpi-info">
+
+                        <span>Occupied Beds</span>
+
+                        <strong>
+                            ${bedText}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="full-room-kpi-info">
+
+                        <span>Phone</span>
+
+                        <strong>
+                            ${escapeHTML(item.phone || "-")}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="full-room-kpi-info">
+
+                        <span>Parent Phone</span>
+
+                        <strong>
+                            ${escapeHTML(item.parentPhone || "-")}
+                        </strong>
+
+                    </div>
+
                 </div>
 
-                <div class="kpi-row">
-                    <span>Apartment</span>
-                    <b>${item.apartment}</b>
-                </div>
 
-                <div class="kpi-row">
-                    <span>Room</span>
-                    <b>${item.room}</b>
-                </div>
+                <div class="full-room-kpi-footer">
 
-                <div class="kpi-row">
-                    <span>Bed</span>
-                    <b>${item.bed}</b>
+                    <span>
+                        🏠 Entire Room
+                    </span>
+
+                    <strong>
+                        $${price} / Month
+                    </strong>
+
                 </div>
             `;
 
-        } else {
+        }
 
-            div.innerHTML = `
-                <div class="kpi-title">
-                    ${escapeHTML(item.name)}
-                </div>
+        /*
+         * =================================================
+         * NORMAL SINGLE BED CARD
+         * =================================================
+         */
+        else {
 
-                <div class="kpi-row">
-                    <span>Floor</span>
-                    <b>${item.floor}</b>
-                </div>
+            div.className = "kpi-item";
 
-                <div class="kpi-row">
-                    <span>Apartment</span>
-                    <b>${item.apartment}</b>
-                </div>
+            if (item.type === "available") {
 
-                <div class="kpi-row">
-                    <span>Room</span>
-                    <b>${item.room}</b>
-                </div>
+                div.innerHTML = `
 
-                <div class="kpi-row">
-                    <span>Bed</span>
-                    <b>${item.bed}</b>
-                </div>
+                    <div class="kpi-title">
+                        🛏 Empty Bed
+                    </div>
 
-                <div class="kpi-row">
-                    <span>Phone</span>
-                    <b>${escapeHTML(item.phone || "-")}</b>
-                </div>
+                    <div class="kpi-row">
+                        <span>Floor</span>
+                        <b>${item.floor}</b>
+                    </div>
 
-                <div class="kpi-row">
-                    <span>Status</span>
+                    <div class="kpi-row">
+                        <span>Apartment</span>
+                        <b>${item.apartment}</b>
+                    </div>
 
-                    <b style="color:${
-                        item.paid === "Paid"
-                            ? "#22c55e"
-                            : "#ef4444"
-                    }">
-                        ${escapeHTML(item.paid)}
-                    </b>
-                </div>
-            `;
+                    <div class="kpi-row">
+                        <span>Room</span>
+                        <b>${item.room}</b>
+                    </div>
+
+                    <div class="kpi-row">
+                        <span>Bed</span>
+                        <b>${item.bed}</b>
+                    </div>
+
+                `;
+
+            } else {
+
+                div.innerHTML = `
+
+                    <div class="kpi-title">
+                        ${escapeHTML(item.name || "Customer")}
+                    </div>
+
+                    <div class="kpi-row">
+                        <span>Floor</span>
+                        <b>${item.floor}</b>
+                    </div>
+
+                    <div class="kpi-row">
+                        <span>Apartment</span>
+                        <b>${item.apartment}</b>
+                    </div>
+
+                    <div class="kpi-row">
+                        <span>Room</span>
+                        <b>${item.room}</b>
+                    </div>
+
+                    <div class="kpi-row">
+                        <span>Bed</span>
+                        <b>${item.bed}</b>
+                    </div>
+
+                    <div class="kpi-row">
+                        <span>Phone</span>
+                        <b>
+                            ${escapeHTML(item.phone || "-")}
+                        </b>
+                    </div>
+
+                    <div class="kpi-row">
+                        <span>Status</span>
+
+                        <b style="
+                            color:${item.paid === "Paid"
+                        ? "#22c55e"
+                        : "#ef4444"
+                    };
+                        ">
+                            ${escapeHTML(item.paid || "Unpaid")}
+                        </b>
+
+                    </div>
+
+                `;
+            }
         }
 
         kpiList.appendChild(div);
     });
 
-    kpiModal.style.display =
-        "flex";
+    kpiModal.style.display = "flex";
 }
-
 
 function closeKpi() {
     kpiModal.style.display =
@@ -2892,7 +4059,6 @@ if (searchInput) {
 /* =========================================================
    MONTHLY PAYMENTS + HISTORY
    ========================================================= */
-
 async function saveMonthlyPaidRecord(
     monthKey = getMonthKey(),
     sourceCustomers = customers
@@ -2905,37 +4071,91 @@ async function saveMonthlyPaidRecord(
 
     const paidCustomers = [];
 
-    for (
-        let i = 0;
-        i < sourceCustomers.length;
-        i++
-    ) {
+    const bookings =
+        getUniqueBookings(
+            sourceCustomers
+        );
 
-        const c =
-            sourceCustomers[i];
+    bookings.forEach(
+        customer => {
 
-        if (
-            !c ||
-            c.paid !== "Paid"
-        ) {
-            continue;
+            if (
+                customer.paid !== "Paid"
+            ) {
+                return;
+            }
+
+            const primaryIndex =
+                Number(
+                    customer.primaryIndex ??
+                    customer.index ??
+                    0
+                );
+
+            const location =
+                getLocation(
+                    primaryIndex
+                );
+
+            const bookingIndexes =
+                getBookingIndexes(
+                    primaryIndex
+                );
+
+            paidCustomers.push({
+
+                ...customer,
+
+                ...location,
+
+                index:
+                    primaryIndex,
+
+                primaryIndex,
+
+                roomBeds:
+                    bookingIndexes,
+
+                bookingType:
+                    customer.bookingType ||
+                    "single",
+
+                bookingPrice:
+                    getBookingPrice(
+                        customer
+                    ),
+
+                customerId:
+                    customerDocId(
+                        primaryIndex
+                    )
+            });
         }
+    );
 
-        paidCustomers.push({
-            ...c,
-            ...getLocation(i),
-            index: i,
-            customerId:
-                customerDocId(i)
-        });
-    }
+    const totalRevenue =
+        paidCustomers.reduce(
+            (
+                total,
+                customer
+            ) =>
+                total +
+                Number(
+                    customer.bookingPrice ||
+                    MONTHLY_RENT
+                ),
+            0
+        );
 
     await setDoc(
+
         companyDoc(
             "paymentHistory",
             monthKey
         ),
+
         {
+
             monthKey,
 
             records:
@@ -2944,9 +4164,7 @@ async function saveMonthlyPaidRecord(
             totalPaid:
                 paidCustomers.length,
 
-            totalRevenue:
-                paidCustomers.length *
-                MONTHLY_RENT,
+            totalRevenue,
 
             updatedAt:
                 serverTimestamp(),
@@ -2956,10 +4174,10 @@ async function saveMonthlyPaidRecord(
         }
     );
 
-    paymentHistory[monthKey] =
-        paidCustomers;
+    paymentHistory[
+        monthKey
+    ] = paidCustomers;
 }
-
 
 async function resetMonthlyPayments() {
 
@@ -3257,10 +4475,9 @@ async function showHistory() {
                                     font-size:11px;
                                     color:#94a3b8
                                 ">
-                                    Client #${
-                                        1000 +
-                                        Number(c.index || 0)
-                                    }
+                                    Client #${1000 +
+                    Number(c.index || 0)
+                    }
                                 </div>
                             </div>
 
@@ -3270,9 +4487,8 @@ async function showHistory() {
                     <td>
                         ${escapeHTML(c.phone || "-")}
 
-                        ${
-                            c.phone
-                                ? `
+                        ${c.phone
+                        ? `
                                     <button
                                         type="button"
                                         onclick="copyPhone('${escapeHTML(c.phone)}')"
@@ -3281,14 +4497,14 @@ async function showHistory() {
                                         📋
                                     </button>
                                 `
-                                : ""
-                        }
+                        : ""
+                    }
                     </td>
 
                     <td>
                         ${escapeHTML(
-                            c.parentPhone || "-"
-                        )}
+                        c.parentPhone || "-"
+                    )}
                     </td>
 
                     <td>
@@ -3346,7 +4562,7 @@ function copyPhone(phone) {
 
     navigator.clipboard
         ?.writeText(phone)
-        .catch(() => {});
+        .catch(() => { });
 }
 
 
@@ -3683,9 +4899,9 @@ function renderExpenses(
                     <td>
                         <strong>
                             ${escapeHTML(
-                                expense.date ||
-                                "N/A"
-                            )}
+                    expense.date ||
+                    "N/A"
+                )}
                         </strong>
                     </td>
 
@@ -3694,16 +4910,16 @@ function renderExpenses(
                             class="badge-category ${badgeClass}"
                         >
                             ${escapeHTML(
-                                expense.category
-                            )}
+                    expense.category
+                )}
                         </span>
                     </td>
 
                     <td>
                         ${escapeHTML(
-                            expense.description ||
-                            "-"
-                        )}
+                    expense.description ||
+                    "-"
+                )}
                     </td>
 
                     <td
@@ -3713,8 +4929,8 @@ function renderExpenses(
                         "
                     >
                         -${formatCurrency(
-                            expense.amount
-                        )}
+                    expense.amount
+                )}
                     </td>
 
                     <td
@@ -4018,16 +5234,24 @@ function updateFinanceDashboard() {
 
         let revenue = 0;
 
-        customers.forEach(c => {
+        const bookings =
+            getUniqueBookings();
 
-            if (
-                c &&
-                c.paid === "Paid"
-            ) {
-                revenue +=
-                    MONTHLY_RENT;
+        bookings.forEach(
+            customer => {
+
+                if (
+                    customer &&
+                    customer.paid === "Paid"
+                ) {
+
+                    revenue +=
+                        getBookingPrice(
+                            customer
+                        );
+                }
             }
-        });
+        );
 
         const profit =
             revenue -
@@ -4054,7 +5278,6 @@ function updateFinanceDashboard() {
                     : "kpi-value text-danger";
         }
     }
-
     applyRoleUI();
 }
 
@@ -4077,150 +5300,252 @@ function renderPaidClients() {
     const rateElem =
         $("paidRatePercentage");
 
-    if (!body) return;
+    if (!body) {
+        return;
+    }
 
     body.innerHTML = "";
 
     let paidCount = 0;
-    let totalOccupied = 0;
 
-    for (
-        let i = 0;
-        i < customers.length;
-        i++
-    ) {
+    let totalBookings = 0;
 
-        const c =
-            customers[i];
+    let totalRevenue = 0;
 
-        if (!c) continue;
+    const bookings =
+        getUniqueBookings();
 
-        totalOccupied++;
+    totalBookings =
+        bookings.length;
 
-        if (
-            c.paid !== "Paid"
-        ) {
-            continue;
-        }
+    bookings.forEach(
+        customer => {
 
-        paidCount++;
+            if (
+                customer.paid !== "Paid"
+            ) {
+                return;
+            }
 
-        const location =
-            getLocation(i);
+            paidCount++;
 
-        const tr =
-            document.createElement("tr");
+            const primaryIndex =
+                Number(
+                    customer.primaryIndex ??
+                    customer.index ??
+                    0
+                );
 
-        tr.dataset.floor =
-            String(location.floor);
+            const location =
+                getLocation(
+                    primaryIndex
+                );
 
-        tr.innerHTML = `
-            <td>
-                <div
-                    style="
-                        display:flex;
-                        align-items:center;
-                        gap:12px;
-                    "
-                >
+            const bookingIndexes =
+                getBookingIndexes(
+                    primaryIndex
+                );
 
-                    ${
-                        c.idImage
-                            ? `
-                                <img
-                                    src="${escapeHTML(c.idImage)}"
-                                    alt="ID"
-                                    style="
-                                        width:38px;
-                                        height:38px;
-                                        border-radius:50%;
-                                        object-fit:cover;
-                                        border:1px solid #e2e8f0;
-                                    "
-                                >
-                            `
-                            : `
-                                <div
-                                    style="
-                                        width:38px;
-                                        height:38px;
-                                        border-radius:50%;
-                                        background:#f1f5f9;
-                                        display:flex;
-                                        align-items:center;
-                                        justify-content:center;
-                                        font-size:16px;
-                                    "
-                                >
-                                    👤
-                                </div>
-                            `
-                    }
+            const bookingPrice =
+                getBookingPrice(
+                    customer
+                );
 
-                    <div>
+            totalRevenue +=
+                bookingPrice;
 
-                        <strong
-                            style="
-                                color:#0f172a;
-                                font-size:14px;
-                            "
+            const tr =
+                document.createElement(
+                    "tr"
+                );
+
+            tr.dataset.floor =
+                String(
+                    location.floor
+                );
+
+            const roomText =
+                customer.bookingType ===
+                    "full_room"
+
+                    ? `
+                        <span
+                            class="location-badge"
                         >
-                            ${escapeHTML(c.name)}
-                        </strong>
+                            Fl ${location.floor}
+                            • Apt ${location.apartment}
+                            • Rm ${location.room}
+                            • 🏠 Full Room
+                        </span>
+                    `
 
-                        <div
-                            style="
-                                font-size:11px;
-                                color:#94a3b8;
-                            "
+                    : `
+                        <span
+                            class="location-badge"
                         >
-                            Ref: #${1000 + i}
+                            Fl ${location.floor}
+                            • Apt ${location.apartment}
+                            • Rm ${location.room}
+                        </span>
+                    `;
+
+            const bedText =
+                customer.bookingType ===
+                    "full_room"
+
+                    ? `
+                        <b>
+                            Beds 1 & 2
+                        </b>
+                    `
+
+                    : `
+                        <b>
+                            Bed ${location.bed}
+                        </b>
+                    `;
+
+            const priceText =
+                canSeeRevenue()
+                    ? formatCurrency(
+                        bookingPrice
+                    )
+                    : "";
+
+            tr.innerHTML = `
+
+                <td>
+
+                    <div
+                        style="
+                            display:flex;
+                            align-items:center;
+                            gap:12px;
+                        "
+                    >
+
+                        ${customer.idImage
+                    ? `
+                                    <img
+                                        src="${escapeHTML(
+                        customer.idImage
+                    )}"
+                                        alt="ID"
+                                        style="
+                                            width:38px;
+                                            height:38px;
+                                            border-radius:50%;
+                                            object-fit:cover;
+                                            border:1px solid #e2e8f0;
+                                        "
+                                    >
+                                `
+                    : `
+                                    <div
+                                        style="
+                                            width:38px;
+                                            height:38px;
+                                            border-radius:50%;
+                                            background:#f1f5f9;
+                                            display:flex;
+                                            align-items:center;
+                                            justify-content:center;
+                                            font-size:16px;
+                                        "
+                                    >
+                                        👤
+                                    </div>
+                                `
+                }
+
+                        <div>
+
+                            <strong
+                                style="
+                                    color:#0f172a;
+                                    font-size:14px;
+                                "
+                            >
+                                ${escapeHTML(
+                    customer.name
+                )}
+                            </strong>
+
+                            ${customer.bookingType ===
+                    "full_room"
+
+                    ? `
+                                        <div
+                                            style="
+                                                color:#2563eb;
+                                                font-size:10px;
+                                                font-weight:800;
+                                                margin-top:3px;
+                                            "
+                                        >
+                                            FULL ROOM
+                                        </div>
+                                    `
+
+                    : ""
+                }
+
                         </div>
 
                     </div>
 
-                </div>
-            </td>
+                </td>
 
-            <td>
-                <strong>
-                    ${escapeHTML(
-                        c.phone || "-"
-                    )}
-                </strong>
-            </td>
-
-            <td>
-                ${escapeHTML(
-                    c.parentPhone || "-"
+                <td>
+                    <strong>
+                        ${escapeHTML(
+                    customer.phone || "-"
                 )}
-            </td>
+                    </strong>
+                </td>
 
-            <td>
-                <span class="location-badge">
-                    Fl ${location.floor}
-                    • Apt ${location.apartment}
-                    • Rm ${location.room}
-                </span>
-            </td>
+                <td>
+                    ${escapeHTML(
+                    customer.parentPhone ||
+                    "-"
+                )}
+                </td>
 
-            <td>
-                <b>
-                    Bed ${location.bed}
-                </b>
-            </td>
+                <td>
+                    ${roomText}
+                </td>
 
-            <td>
-                <span class="status-pill-paid">
-                    PAID
-                </span>
-            </td>
-        `;
+                <td>
+                    ${bedText}
+                </td>
 
-        body.appendChild(tr);
-    }
+                <td>
+                    <span
+                        class="status-pill-paid"
+                    >
+                        PAID
+                    </span>
+                </td>
+
+                ${canSeeRevenue()
+                    ? `
+                            <td>
+                                <strong>
+                                    ${priceText}
+                                </strong>
+                            </td>
+                        `
+                    : ""
+                }
+
+            `;
+
+            body.appendChild(tr);
+        }
+    );
 
     if (countElem) {
+
         countElem.innerText =
             paidCount;
     }
@@ -4230,23 +5555,23 @@ function renderPaidClients() {
         totalRevElem.innerText =
             canSeeRevenue()
                 ? formatCurrency(
-                    paidCount *
-                    MONTHLY_RENT
+                    totalRevenue
                 )
                 : "";
     }
 
     const rate =
-        totalOccupied > 0
+        totalBookings > 0
             ? Math.round(
                 (
                     paidCount /
-                    totalOccupied
+                    totalBookings
                 ) * 100
             )
             : 0;
 
     if (rateElem) {
+
         rateElem.innerText =
             `${rate}%`;
     }
@@ -4291,11 +5616,11 @@ function filterPaidClients() {
             const floorMatch =
                 selectedFloor === "all" ||
                 row.dataset.floor ===
-                    selectedFloor;
+                selectedFloor;
 
             row.style.display =
                 textMatch &&
-                floorMatch
+                    floorMatch
                     ? ""
                     : "none";
         });
@@ -4584,7 +5909,7 @@ function renderUsers() {
 
             const status =
                 user.status ===
-                "suspended"
+                    "suspended"
                     ? "Suspended"
                     : "Active";
 
@@ -4602,9 +5927,9 @@ function renderUsers() {
 
                     <strong>
                         ${escapeHTML(
-                            user.name ||
-                            "Unnamed User"
-                        )}
+                user.name ||
+                "Unnamed User"
+            )}
                     </strong>
 
                     <div
@@ -4614,9 +5939,9 @@ function renderUsers() {
                         "
                     >
                         ${escapeHTML(
-                            user.email ||
-                            "-"
-                        )}
+                user.email ||
+                "-"
+            )}
                     </div>
 
                 </td>
@@ -4634,11 +5959,10 @@ function renderUsers() {
                 <td>
 
                     <span
-                        class="user-status ${
-                            status === "Active"
-                                ? "active"
-                                : "suspended"
-                        }"
+                        class="user-status ${status === "Active"
+                    ? "active"
+                    : "suspended"
+                }"
                     >
                         ${status}
                     </span>
@@ -4647,10 +5971,10 @@ function renderUsers() {
 
                 <td>
                     ${escapeHTML(
-                        user.updatedAt
-                            ? "Updated"
-                            : ""
-                    )}
+                    user.updatedAt
+                        ? "Updated"
+                        : ""
+                )}
                 </td>
 
                 <td
@@ -4667,10 +5991,9 @@ function renderUsers() {
                         ✏️ Edit
                     </button>
 
-                    ${
-                        !isSelf &&
-                        !isOwner
-                            ? `
+                    ${!isSelf &&
+                    !isOwner
+                    ? `
                                 <button
                                     class="user-action-delete"
                                     onclick="removeManagedUser('${escapeHTML(user.uid)}')"
@@ -4678,8 +6001,8 @@ function renderUsers() {
                                     🗑 Remove
                                 </button>
                             `
-                            : ""
-                    }
+                    : ""
+                }
 
                 </td>
             `;
@@ -4822,11 +6145,10 @@ function renderPermissionEditor(
                 <input
                     type="checkbox"
                     data-permission="${escapeHTML(key)}"
-                    ${
-                        permissions[key] === true
-                            ? "checked"
-                            : ""
-                    }
+                    ${permissions[key] === true
+                    ? "checked"
+                    : ""
+                }
                 >
             `;
 
@@ -4908,8 +6230,8 @@ async function saveManagedUser() {
             $("managedUserStatus")
                 ?.value ===
                 "suspended"
-                    ? "suspended"
-                    : "active";
+                ? "suspended"
+                : "active";
 
         const permissions =
             collectPermissions();
@@ -4979,7 +6301,7 @@ async function saveManagedUser() {
 
             if (
                 editingUserId ===
-                    auth.currentUser.uid &&
+                auth.currentUser.uid &&
                 role !== currentRole
             ) {
 
@@ -4990,9 +6312,9 @@ async function saveManagedUser() {
 
             if (
                 existing.role ===
-                    "owner" &&
+                "owner" &&
                 currentRole !==
-                    "owner"
+                "owner"
             ) {
 
                 throw new Error(
@@ -5003,7 +6325,7 @@ async function saveManagedUser() {
             if (
                 role === "owner" &&
                 currentRole !==
-                    "owner"
+                "owner"
             ) {
 
                 throw new Error(
@@ -5040,7 +6362,7 @@ async function saveManagedUser() {
             if (
                 role === "owner" &&
                 currentRole !==
-                    "owner"
+                "owner"
             ) {
 
                 throw new Error(
@@ -5193,9 +6515,8 @@ function removeManagedUser(uid) {
         }
 
         showConfirm(
-            `Remove access for ${
-                user.name ||
-                user.email
+            `Remove access for ${user.name ||
+            user.email
             }?`,
 
             async () => {
