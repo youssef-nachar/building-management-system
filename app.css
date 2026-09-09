@@ -5221,3 +5221,471 @@ svg {
     min-width: 110px !important;
     z-index: 5;
 }
+
+#usersPage,
+#userManagementPage {
+    --users-surface: var(--surface);
+    --users-surface-2: var(--surface2);
+    --users-border: var(--border);
+    --users-text: var(--text);
+    --users-text-2: var(--text2);
+    --users-muted: var(--muted);
+    --users-blue: var(--primary);
+    --users-blue-2: var(--primary2);
+    --users-green: var(--success);
+    --users-red: var(--danger);
+    --users-orange: var(--warning);
+}
+
+/* Page shell */
+#usersPage .finance-container,
+#userManagementPage .user-container {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 92% 0%, rgba(59,130,246,.12), transparent 28%),
+        radial-gradient(circle at 8% 100%, rgba(96,165,250,.055), transparent 30%),
+        linear-gradient(145deg, var(--bg), var(--bg2));
+    border: 1px solid var(--users-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+#usersPage .finance-container::before,
+#userManagementPage .user-container::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        180deg,
+        rgba(255,255,255,.025),
+        transparent 18%
+    );
+}
+
+/* Header */
+#usersPage .paid-header,
+#userManagementPage .paid-header {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 22px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--users-border);
+}
+
+#usersPage .paid-title-group,
+#userManagementPage .paid-title-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+#usersPage .status-indicator-dot,
+#userManagementPage .status-indicator-dot {
+    width: 11px;
+    height: 11px;
+    flex: 0 0 11px;
+    border-radius: 50%;
+    background: var(--users-blue);
+    box-shadow:
+        0 0 0 5px rgba(59,130,246,.10),
+        0 0 18px rgba(59,130,246,.65);
+}
+
+#usersPage .paid-title-group h2,
+#userManagementPage .paid-title-group h2 {
+    margin: 0;
+    color: var(--users-text);
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -.4px;
+}
+
+#usersPage .paid-subtitle,
+#userManagementPage .paid-subtitle {
+    margin: 7px 0 0;
+    color: var(--users-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Add User */
+#usersPage .btn-primary-print,
+#userManagementPage .btn-primary-print {
+    min-height: 42px;
+    padding: 0 17px;
+    border: 1px solid rgba(96,165,250,.28);
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    font-size: 12px;
+    font-weight: 750;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(37,99,235,.22);
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+#usersPage .btn-primary-print:hover,
+#userManagementPage .btn-primary-print:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+    box-shadow: 0 12px 28px rgba(37,99,235,.32);
+}
+
+/* Table card */
+#usersPage .paid-table-card,
+#userManagementPage .paid-table-card {
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    background: rgba(16,27,46,.82);
+    border: 1px solid var(--users-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+#usersPage .paid-table,
+#userManagementPage .paid-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+}
+
+#usersPage .paid-table thead th,
+#userManagementPage .paid-table thead th {
+    height: 48px;
+    padding: 0 18px;
+    background: linear-gradient(180deg, var(--surface2), rgba(12,22,40,.92));
+    color: var(--users-muted);
+    border-bottom: 1px solid var(--users-border);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .65px;
+    text-transform: uppercase;
+    text-align: left;
+    white-space: nowrap;
+}
+
+#usersPage .paid-table thead th:first-child,
+#userManagementPage .paid-table thead th:first-child {
+    border-top-left-radius: 16px;
+}
+
+#usersPage .paid-table thead th:last-child,
+#userManagementPage .paid-table thead th:last-child {
+    text-align: right;
+    border-top-right-radius: 16px;
+}
+
+#usersPage .paid-table tbody tr,
+#userManagementPage .paid-table tbody tr {
+    background: rgba(10,20,36,.52);
+    transition:
+        background .18s ease,
+        transform .18s ease,
+        box-shadow .18s ease;
+}
+
+#usersPage .paid-table tbody tr:hover,
+#userManagementPage .paid-table tbody tr:hover {
+    background: rgba(30,52,78,.55);
+    box-shadow: inset 3px 0 0 var(--primary);
+}
+
+#usersPage .paid-table tbody td,
+#userManagementPage .paid-table tbody td {
+    height: 70px;
+    padding: 12px 18px;
+    color: var(--users-text-2);
+    border-bottom: 1px solid rgba(148,163,184,.075);
+    vertical-align: middle;
+    font-size: 12px;
+}
+
+#usersPage .paid-table tbody tr:last-child td,
+#userManagementPage .paid-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+/* User identity */
+#usersPage .paid-table tbody td:first-child,
+#userManagementPage .paid-table tbody td:first-child {
+    color: var(--users-text);
+}
+
+#usersPage .paid-table tbody td:first-child strong,
+#userManagementPage .paid-table tbody td:first-child strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--users-text);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+#usersPage .paid-table tbody td:first-child div,
+#userManagementPage .paid-table tbody td:first-child div {
+    color: var(--users-muted) !important;
+    font-size: 11px !important;
+    line-height: 1.4;
+}
+
+/* Role badges */
+#usersPage .user-role-badge,
+#userManagementPage .user-role-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 70px;
+    padding: 6px 11px;
+    border: 1px solid rgba(96,165,250,.18);
+    border-radius: 999px;
+    background: rgba(59,130,246,.09);
+    color: var(--users-blue-2);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .55px;
+    text-transform: uppercase;
+}
+
+#usersPage .user-role-badge.role-owner,
+#userManagementPage .user-role-badge.role-owner {
+    color: #c4b5fd;
+    background: rgba(139,92,246,.11);
+    border-color: rgba(139,92,246,.22);
+}
+
+#usersPage .user-role-badge.role-admin,
+#userManagementPage .user-role-badge.role-admin {
+    color: #93c5fd;
+    background: rgba(59,130,246,.12);
+    border-color: rgba(59,130,246,.24);
+}
+
+#usersPage .user-role-badge.role-staff,
+#userManagementPage .user-role-badge.role-staff {
+    color: #67e8f9;
+    background: rgba(6,182,212,.10);
+    border-color: rgba(6,182,212,.20);
+}
+
+#usersPage .user-role-badge.role-viewer,
+#userManagementPage .user-role-badge.role-viewer {
+    color: #cbd5e1;
+    background: rgba(148,163,184,.09);
+    border-color: rgba(148,163,184,.17);
+}
+
+/* Status — IMPORTANT: matches JS classes .user-status.active/.suspended */
+#usersPage .user-status,
+#userManagementPage .user-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 78px;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+#usersPage .user-status::before,
+#userManagementPage .user-status::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-radius: 50%;
+}
+
+#usersPage .user-status.active,
+#userManagementPage .user-status.active {
+    color: #4ade80;
+}
+
+#usersPage .user-status.active::before,
+#userManagementPage .user-status.active::before {
+    background: var(--users-green);
+    box-shadow: 0 0 10px rgba(34,197,94,.70);
+}
+
+#usersPage .user-status.suspended,
+#userManagementPage .user-status.suspended {
+    color: #f87171;
+}
+
+#usersPage .user-status.suspended::before,
+#userManagementPage .user-status.suspended::before {
+    background: var(--users-red);
+    box-shadow: 0 0 10px rgba(239,68,68,.70);
+}
+
+/* Updated column */
+#usersPage .paid-table tbody td:nth-child(4),
+#userManagementPage .paid-table tbody td:nth-child(4) {
+    color: var(--users-muted);
+    font-size: 11px;
+}
+
+/* Action buttons — exact classes generated by renderUsers() */
+#usersPage .user-action-edit,
+#usersPage .user-action-delete,
+#userManagementPage .user-action-edit,
+#userManagementPage .user-action-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 11px;
+    margin-left: 6px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 750;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        transform .18s ease,
+        background .18s ease,
+        border-color .18s ease,
+        box-shadow .18s ease;
+}
+
+#usersPage .user-action-edit,
+#userManagementPage .user-action-edit {
+    color: #93c5fd;
+    background: rgba(59,130,246,.09);
+    border-color: rgba(59,130,246,.18);
+}
+
+#usersPage .user-action-edit:hover,
+#userManagementPage .user-action-edit:hover {
+    transform: translateY(-1px);
+    background: rgba(59,130,246,.16);
+    border-color: rgba(96,165,250,.35);
+    box-shadow: 0 6px 16px rgba(37,99,235,.18);
+}
+
+#usersPage .user-action-delete,
+#userManagementPage .user-action-delete {
+    color: #fca5a5;
+    background: rgba(239,68,68,.08);
+    border-color: rgba(239,68,68,.17);
+}
+
+#usersPage .user-action-delete:hover,
+#userManagementPage .user-action-delete:hover {
+    transform: translateY(-1px);
+    background: rgba(239,68,68,.15);
+    border-color: rgba(239,68,68,.34);
+    box-shadow: 0 6px 16px rgba(239,68,68,.14);
+}
+
+/* Empty state */
+#usersEmptyState {
+    padding: 42px 20px;
+    color: var(--users-muted);
+    text-align: center;
+    font-size: 12px;
+}
+
+/* Modal opened by openUserModal() */
+#userModal {
+    z-index: 10000;
+}
+
+#userModal .user-management-modal {
+    width: min(620px, calc(100vw - 30px));
+    max-height: min(88vh, 760px);
+    overflow-y: auto;
+    background:
+        radial-gradient(circle at 90% 0%, rgba(59,130,246,.10), transparent 30%),
+        linear-gradient(145deg, var(--surface), var(--surface2));
+    border: 1px solid var(--users-border);
+    border-radius: 20px;
+    box-shadow:
+        0 30px 80px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.025) inset;
+}
+
+/* Focus accessibility */
+#usersPage button:focus-visible,
+#userManagementPage button:focus-visible,
+#userModal button:focus-visible,
+#userModal input:focus-visible,
+#userModal select:focus-visible {
+    outline: 2px solid var(--primary2);
+    outline-offset: 2px;
+}
+
+/* Responsive */
+@media (max-width: 760px) {
+    #usersPage .paid-header,
+    #userManagementPage .paid-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    #usersPage .export-actions-group,
+    #userManagementPage .export-actions-group {
+        width: 100%;
+    }
+
+    #usersPage .btn-primary-print,
+    #userManagementPage .btn-primary-print {
+        width: 100%;
+    }
+
+    #usersPage .paid-table-card,
+    #userManagementPage .paid-table-card {
+        overflow-x: auto;
+    }
+
+    #usersPage .paid-table,
+    #userManagementPage .paid-table {
+        min-width: 720px;
+    }
+}
+
+@media (max-width: 520px) {
+    #usersPage .finance-container,
+    #userManagementPage .user-container {
+        padding: 16px;
+        border-radius: 15px;
+    }
+
+    #usersPage .paid-title-group h2,
+    #userManagementPage .paid-title-group h2 {
+        font-size: 20px;
+    }
+
+    #usersPage .paid-table tbody td,
+    #userManagementPage .paid-table tbody td {
+        height: 62px;
+        padding: 10px 13px;
+    }
+
+    #usersPage .user-action-edit,
+    #usersPage .user-action-delete,
+    #userManagementPage .user-action-edit,
+    #userManagementPage .user-action-delete {
+        min-height: 32px;
+        padding: 0 9px;
+        margin-left: 3px;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    #usersPage *,
+    #userManagementPage *,
+    #userModal * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
