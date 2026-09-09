@@ -524,6 +524,35 @@
                 <input type="text" id="customerName" maxlength="120" placeholder="Customer Name">
                 <input type="text" id="customerPhone" maxlength="40" placeholder="Phone Number">
                 <input type="text" id="customerParentPhone" maxlength="40" placeholder="Parent Phone Number">
+                <div class="form-group">
+    <label for="bookingType">
+        Accommodation Type
+    </label>
+
+    <select id="bookingType">
+        <option value="single">
+            Single Bed — $235 / Month
+        </option>
+
+        <option value="full_room">
+            Full Room — 2 Beds — $470 / Month
+        </option>
+    </select>
+</div>
+
+<div
+    id="bookingTypeInfo"
+    style="
+        margin-top:8px;
+        padding:10px 12px;
+        border-radius:10px;
+        background:#f8fafc;
+        color:#475569;
+        font-size:13px;
+    "
+>
+    Single bed reservation.
+</div>
                 <input type="file" id="customerIdImage" accept="image/jpeg,image/png,image/webp">
                 <button id="saveCustomer">Save</button>
                 <button id="cancelCustomer">Cancel</button>
@@ -541,7 +570,23 @@
                     <option value="Paid">Paid</option>
                     <option value="Not Paid">Not Paid</option>
                 </select>
+                <div class="form-group">
+    <label for="editBookingType">
+        Accommodation Type
+    </label>
+
+    <select id="editBookingType">
+        <option value="single">
+            Single Bed — $235 / Month
+        </option>
+
+        <option value="full_room">
+            Full Room — 2 Beds — $470 / Month
+        </option>
+    </select>
+</div>
                 <button id="updateCustomer">Update</button>
+
                 <button id="checkoutCustomer">Check Out</button>
                 <button id="cancelEdit">Cancel</button>
             </div>
