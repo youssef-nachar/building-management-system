@@ -89,7 +89,8 @@ let appCheck;
    ========================================================= */
 
 let currentRole = null;
-let currentCompanyId = null;
+const COMPANY_ID = "foyer-nohad";
+let currentCompanyId = COMPANY_ID;
 let currentUserProfile = null;
 
 const imageObjectUrls = new Map();
@@ -631,20 +632,31 @@ async function loadCurrentUserRole(user) {
         "viewer"
     ];
 
-    if (
-        !allowedRoles.includes(profile.role) ||
-        !profile.companyId ||
-        profile.status === "suspended"
-    ) {
+if (
+    !allowedRoles.includes(profile.role) ||
+    profile.status === "suspended"
+) {
+    currentRole = null;
+    currentCompanyId = null;
+    currentUserProfile = null;
 
-        currentRole = null;
-        currentCompanyId = null;
-        currentUserProfile = null;
+    throw new Error(
+        "This account is not authorized."
+    );
+}
 
-        throw new Error(
-            "This account is not authorized for a company."
-        );
-    }
+currentRole = profile.role;
+
+currentCompanyId = COMPANY_ID;
+
+currentUserProfile = {
+    uid: user.uid,
+    ...profile,
+    companyId: COMPANY_ID,
+    permissions:
+        profile.permissions ||
+        getRoleDefaultPermissions(profile.role)
+};
 
     currentRole =
         profile.role;
@@ -773,7 +785,11 @@ function applyRoleUI() {
                     ? ""
                     : "none";
         });
-
+document
+    .querySelectorAll("[data-requests-only]")
+    .forEach(el => {
+        el.style.display = "";
+    });
 
     /*
      * Explicit finance elements
@@ -4632,12 +4648,13 @@ function openTab(tabName) {
     // =========================
     // Hide all pages safely
     // =========================
-    const pages = [
-        "residentsPage",
-        "financePage",
-        "paidClientsPage",
-        "usersPage"
-    ];
+const pages = [
+    "residentsPage",
+    "requestsPage",
+    "financePage",
+    "paidClientsPage",
+    "usersPage"
+];
 
     pages.forEach(id => {
         const page = document.getElementById(id);
@@ -4659,39 +4676,47 @@ function openTab(tabName) {
     // =========================
     let pageId = null;
 
-    switch (tabName) {
-        case "residents":
-            pageId = "residentsPage";
-            break;
+ switch (tabName) {
 
-        case "finance":
-            pageId = "financePage";
-            break;
+    case "residents":
+        pageId = "residentsPage";
+        break;
 
-        case "paidClients":
-            pageId = "paidClientsPage";
-            break;
+    case "requests":
+        pageId = "requestsPage";
 
-        case "users":
-            pageId = "usersPage";
+        if (typeof loadRequests === "function") {
+            loadRequests();
+        }
 
-            // Only admin/owner can open it
-            if (!isAdminRole()) {
-                showToast("Access denied");
-                return;
-            }
+        break;
 
-            // Load users when opening the page
-            if (typeof loadUsers === "function") {
-                loadUsers();
-            }
-            break;
+    case "finance":
+        pageId = "financePage";
+        break;
 
-        default:
-            console.warn("Unknown tab:", tabName);
+    case "paidClients":
+        pageId = "paidClientsPage";
+        break;
+
+    case "users":
+        pageId = "usersPage";
+
+        if (!isAdminRole()) {
+            showToast("Access denied");
             return;
-    }
+        }
 
+        if (typeof loadUsers === "function") {
+            loadUsers();
+        }
+
+        break;
+
+    default:
+        console.warn("Unknown tab:", tabName);
+        return;
+}
     // =========================
     // Display selected page
     // =========================
@@ -6693,7 +6718,1173 @@ window.addEventListener(
         }
     }
 );
+/* =========================================================
+   REQUESTS MANAGEMENT
+   ========================================================= */
 
+let requests = [];
+let editingRequestId = null;
+let unsubscribeRequests = null;
+
+
+/* ---------------------------------------------------------
+   REQUEST PERMISSIONS
+   --------------------------------------------------------- */
+
+function canReadRequests() {
+    return (
+        isAdminRole() ||
+        hasPermission("requests.read") ||
+        ["manager", "staff", "accountant", "viewer"].includes(currentRole)
+    );
+}
+
+function canWriteRequests() {
+    return (
+        isAdminRole() ||
+        hasPermission("requests.write") ||
+        ["manager", "staff"].includes(currentRole)
+    );
+}
+
+
+/* ---------------------------------------------------------
+   LOAD REQUESTS
+   --------------------------------------------------------- */
+
+async function loadRequests() {
+
+    try {
+
+        requireFirebase();
+        requireCompany();
+
+        if (!canReadRequests()) {
+            showToast("Access denied");
+            return;
+        }
+
+        const snapshot = await getDocs(
+            companyCollection("requests")
+        );
+
+        requests = snapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+        }));
+
+        requests.sort((a, b) => {
+
+            const aTime =
+                a.updatedAt?.toMillis?.() ||
+                a.createdAt?.toMillis?.() ||
+                0;
+
+            const bTime =
+                b.updatedAt?.toMillis?.() ||
+                b.createdAt?.toMillis?.() ||
+                0;
+
+            return bTime - aTime;
+        });
+
+        renderRequests();
+
+    } catch (error) {
+
+        console.error("loadRequests:", error);
+
+        showToast(
+            firebaseErrorMessage(error)
+        );
+    }
+}
+
+
+/* ---------------------------------------------------------
+   OPEN REQUEST MODAL
+   --------------------------------------------------------- */
+
+function openRequestModal(requestId = null) {
+
+    if (!canWriteRequests()) {
+        showToast("You do not have permission to create or edit requests.");
+        return;
+    }
+
+    const modal = $("requestModal");
+
+    if (!modal) return;
+
+    editingRequestId = requestId;
+
+    const title = $("requestModalTitle");
+    const submitLabel = $("requestSubmitLabel");
+
+    if (requestId) {
+
+        const request =
+            requests.find(r => r.id === requestId);
+
+        if (!request) {
+            showToast("Request not found.");
+            return;
+        }
+
+        if (title) {
+            title.textContent = "Edit Request";
+        }
+
+        if (submitLabel) {
+            submitLabel.textContent = "Save Changes";
+        }
+
+        $("requestTitle").value =
+            request.title || "";
+
+        $("requestType").value =
+            request.type || "Maintenance";
+
+        $("requestPriority").value =
+            request.priority || "medium";
+
+        $("requestStatus").value =
+            request.status || "pending";
+
+        $("requestRequestedBy").value =
+            request.requestedBy || "";
+
+        $("requestFloor").value =
+            request.floor ?? "";
+
+        $("requestApartment").value =
+            request.apartment ?? "";
+
+        $("requestRoom").value =
+            request.room ?? "";
+
+        $("requestDueDate").value =
+            request.dueDate || "";
+
+        $("requestDescription").value =
+            request.description || "";
+
+    } else {
+
+        if (title) {
+            title.textContent = "Create New Request";
+        }
+
+        if (submitLabel) {
+            submitLabel.textContent = "Create Request";
+        }
+
+        clearRequestForm();
+    }
+
+    modal.style.display = "flex";
+}
+
+
+/* ---------------------------------------------------------
+   CLEAR FORM
+   --------------------------------------------------------- */
+
+function clearRequestForm() {
+
+    const fields = [
+        "requestTitle",
+        "requestRequestedBy",
+        "requestFloor",
+        "requestApartment",
+        "requestRoom",
+        "requestDueDate",
+        "requestDescription"
+    ];
+
+    fields.forEach(id => {
+
+        const el = $(id);
+
+        if (el) {
+            el.value = "";
+        }
+    });
+
+    if ($("requestType")) {
+        $("requestType").value =
+            "Maintenance";
+    }
+
+    if ($("requestPriority")) {
+        $("requestPriority").value =
+            "medium";
+    }
+
+    if ($("requestStatus")) {
+        $("requestStatus").value =
+            "pending";
+    }
+}
+
+
+/* ---------------------------------------------------------
+   CLOSE MODAL
+   --------------------------------------------------------- */
+
+function closeRequestModal() {
+
+    const modal = $("requestModal");
+
+    if (modal) {
+        modal.style.display = "none";
+    }
+
+    editingRequestId = null;
+
+    clearRequestForm();
+}
+
+
+/* ---------------------------------------------------------
+   SAVE REQUEST
+   --------------------------------------------------------- */
+
+async function saveRequest() {
+
+    if (!canWriteRequests()) {
+        showToast("You do not have permission to save requests.");
+        return;
+    }
+
+    try {
+
+        requireFirebase();
+        requireCompany();
+
+        const title =
+            $("requestTitle")?.value.trim();
+
+        const description =
+            $("requestDescription")?.value.trim();
+
+        if (!title) {
+            showToast("Please enter a request title.");
+            $("requestTitle")?.focus();
+            return;
+        }
+
+        if (!description) {
+            showToast("Please enter a description.");
+            $("requestDescription")?.focus();
+            return;
+        }
+
+        const requestData = {
+
+            title,
+
+            type:
+                $("requestType")?.value ||
+                "Maintenance",
+
+            priority:
+                $("requestPriority")?.value ||
+                "medium",
+
+            status:
+                $("requestStatus")?.value ||
+                "pending",
+
+            requestedBy:
+                $("requestRequestedBy")?.value.trim() ||
+                "",
+
+            floor:
+                $("requestFloor")?.value.trim() ||
+                "",
+
+            apartment:
+                $("requestApartment")?.value.trim() ||
+                "",
+
+            room:
+                $("requestRoom")?.value.trim() ||
+                "",
+
+            dueDate:
+                $("requestDueDate")?.value ||
+                "",
+
+            description,
+
+            updatedAt:
+                serverTimestamp()
+        };
+
+
+        if (editingRequestId) {
+
+            await updateDoc(
+                companyDoc(
+                    "requests",
+                    editingRequestId
+                ),
+                requestData
+            );
+
+            showToast("Request updated successfully.");
+
+        } else {
+
+            requestData.createdAt =
+                serverTimestamp();
+
+            requestData.createdBy =
+                auth.currentUser?.uid || "";
+
+            await addDoc(
+                companyCollection("requests"),
+                requestData
+            );
+
+            showToast("Request created successfully.");
+        }
+
+        closeRequestModal();
+
+        await loadRequests();
+
+    } catch (error) {
+
+        console.error("saveRequest:", error);
+
+        showToast(
+            firebaseErrorMessage(error)
+        );
+    }
+}
+
+
+/* ---------------------------------------------------------
+   VIEW REQUEST
+   --------------------------------------------------------- */
+
+function viewRequest(requestId) {
+
+    const request =
+        requests.find(r => r.id === requestId);
+
+    if (!request) {
+        showToast("Request not found.");
+        return;
+    }
+
+    const modal =
+        $("requestDetailsModal");
+
+    const body =
+        $("requestDetailsBody");
+
+    const number =
+        $("requestDetailsNo");
+
+    const title =
+        $("requestDetailsTitle");
+
+    if (!modal || !body) return;
+
+    if (number) {
+        number.textContent =
+            "REQ-" +
+            request.id.slice(-6).toUpperCase();
+    }
+
+    if (title) {
+        title.textContent =
+            request.title || "Request Details";
+    }
+
+    const location = [
+        request.floor
+            ? `Floor ${escapeHTML(request.floor)}`
+            : "",
+        request.apartment
+            ? `Apartment ${escapeHTML(request.apartment)}`
+            : "",
+        request.room
+            ? `Room ${escapeHTML(request.room)}`
+            : ""
+    ]
+        .filter(Boolean)
+        .join(" • ") || "Not specified";
+
+
+    body.innerHTML = `
+        <div style="padding:20px">
+
+            <div style="
+                display:grid;
+                grid-template-columns:repeat(2,minmax(0,1fr));
+                gap:15px;
+                margin-bottom:20px;
+            ">
+
+                <div>
+                    <small style="color:#94a3b8">
+                        TYPE
+                    </small>
+                    <strong style="display:block;margin-top:4px">
+                        ${escapeHTML(request.type || "General")}
+                    </strong>
+                </div>
+
+                <div>
+                    <small style="color:#94a3b8">
+                        PRIORITY
+                    </small>
+                    <strong style="display:block;margin-top:4px">
+                        ${escapeHTML(
+                            formatRequestLabel(
+                                request.priority || "medium"
+                            )
+                        )}
+                    </strong>
+                </div>
+
+                <div>
+                    <small style="color:#94a3b8">
+                        STATUS
+                    </small>
+                    <strong style="display:block;margin-top:4px">
+                        ${escapeHTML(
+                            formatRequestLabel(
+                                request.status || "pending"
+                            )
+                        )}
+                    </strong>
+                </div>
+
+                <div>
+                    <small style="color:#94a3b8">
+                        REQUESTED BY
+                    </small>
+                    <strong style="display:block;margin-top:4px">
+                        ${escapeHTML(
+                            request.requestedBy || "Not specified"
+                        )}
+                    </strong>
+                </div>
+
+                <div>
+                    <small style="color:#94a3b8">
+                        LOCATION
+                    </small>
+                    <strong style="display:block;margin-top:4px">
+                        ${location}
+                    </strong>
+                </div>
+
+                <div>
+                    <small style="color:#94a3b8">
+                        DUE DATE
+                    </small>
+                    <strong style="display:block;margin-top:4px">
+                        ${escapeHTML(
+                            request.dueDate || "No due date"
+                        )}
+                    </strong>
+                </div>
+
+            </div>
+
+            <div style="
+                background:#f8fafc;
+                border:1px solid #e2e8f0;
+                border-radius:14px;
+                padding:16px;
+            ">
+                <small style="color:#94a3b8">
+                    DESCRIPTION
+                </small>
+
+                <p style="
+                    white-space:pre-wrap;
+                    line-height:1.7;
+                    color:#334155;
+                    margin:8px 0 0;
+                ">
+                    ${escapeHTML(
+                        request.description || ""
+                    )}
+                </p>
+            </div>
+
+            ${
+                canWriteRequests()
+                    ? `
+                    <div style="
+                        display:flex;
+                        justify-content:flex-end;
+                        gap:8px;
+                        margin-top:18px;
+                    ">
+                        <button
+                            class="btn-secondary-export"
+                            onclick="closeRequestDetails();openRequestModal('${request.id}')">
+                            Edit
+                        </button>
+                    </div>
+                    `
+                    : ""
+            }
+
+        </div>
+    `;
+
+    modal.style.display = "flex";
+}
+
+
+/* ---------------------------------------------------------
+   CLOSE DETAILS
+   --------------------------------------------------------- */
+
+function closeRequestDetails() {
+
+    const modal =
+        $("requestDetailsModal");
+
+    if (modal) {
+        modal.style.display = "none";
+    }
+}
+
+
+/* ---------------------------------------------------------
+   DELETE REQUEST
+   --------------------------------------------------------- */
+
+async function deleteRequest(requestId) {
+
+    if (!canWriteRequests()) {
+        showToast("You do not have permission to delete requests.");
+        return;
+    }
+
+    const request =
+        requests.find(r => r.id === requestId);
+
+    if (!request) return;
+
+    const confirmed =
+        window.confirm(
+            `Delete request "${request.title || ""}"?`
+        );
+
+    if (!confirmed) return;
+
+    try {
+
+        requireFirebase();
+        requireCompany();
+
+        await deleteDoc(
+            companyDoc(
+                "requests",
+                requestId
+            )
+        );
+
+        showToast("Request deleted.");
+
+        await loadRequests();
+
+    } catch (error) {
+
+        console.error("deleteRequest:", error);
+
+        showToast(
+            firebaseErrorMessage(error)
+        );
+    }
+}
+
+
+/* ---------------------------------------------------------
+   FILTERS
+   --------------------------------------------------------- */
+
+function filterRequests() {
+
+    renderRequests();
+}
+
+
+function resetRequestFilters() {
+
+    if ($("requestSearch")) {
+        $("requestSearch").value = "";
+    }
+
+    if ($("requestStatusFilter")) {
+        $("requestStatusFilter").value = "all";
+    }
+
+    if ($("requestPriorityFilter")) {
+        $("requestPriorityFilter").value = "all";
+    }
+
+    if ($("requestTypeFilter")) {
+        $("requestTypeFilter").value = "all";
+    }
+
+    renderRequests();
+}
+
+
+/* ---------------------------------------------------------
+   RENDER REQUESTS
+   --------------------------------------------------------- */
+
+function renderRequests() {
+
+    const body =
+        $("requestsTableBody");
+
+    if (!body) return;
+
+    const search =
+        ($("requestSearch")?.value || "")
+            .trim()
+            .toLowerCase();
+
+    const status =
+        $("requestStatusFilter")?.value ||
+        "all";
+
+    const priority =
+        $("requestPriorityFilter")?.value ||
+        "all";
+
+    const type =
+        $("requestTypeFilter")?.value ||
+        "all";
+
+
+    const filtered =
+        requests.filter(request => {
+
+            const haystack = [
+
+                request.title,
+                request.description,
+                request.requestedBy,
+                request.type,
+                request.floor,
+                request.apartment,
+                request.room
+
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+
+            if (
+                search &&
+                !haystack.includes(search)
+            ) {
+                return false;
+            }
+
+
+            if (
+                status !== "all" &&
+                request.status !== status
+            ) {
+                return false;
+            }
+
+
+            if (
+                priority !== "all" &&
+                request.priority !== priority
+            ) {
+                return false;
+            }
+
+
+            if (
+                type !== "all" &&
+                request.type !== type
+            ) {
+                return false;
+            }
+
+
+            return true;
+        });
+
+
+    updateRequestKPIs();
+
+
+    if (!filtered.length) {
+
+        body.innerHTML = `
+            <tr>
+                <td colspan="9">
+                    <div class="requests-empty">
+                        <div class="requests-empty-icon">
+                            <i class="fa-solid fa-inbox"></i>
+                        </div>
+                        <h3>No requests found</h3>
+                        <p>Create a new request or change the filters.</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    body.innerHTML =
+        filtered.map(request => {
+
+            const location = [
+
+                request.floor
+                    ? `F${escapeHTML(request.floor)}`
+                    : "",
+
+                request.apartment
+                    ? `A${escapeHTML(request.apartment)}`
+                    : "",
+
+                request.room
+                    ? `R${escapeHTML(request.room)}`
+                    : ""
+
+            ]
+                .filter(Boolean)
+                .join(" • ") || "—";
+
+
+            const overdue =
+                isRequestOverdue(request);
+
+
+            const updated =
+                formatRequestTimestamp(
+                    request.updatedAt ||
+                    request.createdAt
+                );
+
+
+            return `
+                <tr>
+
+                    <td class="request-title-cell">
+                        <strong>
+                            ${escapeHTML(
+                                request.title || "Untitled Request"
+                            )}
+                        </strong>
+
+                        <span>
+                            REQ-${request.id
+                                .slice(-6)
+                                .toUpperCase()}
+                        </span>
+                    </td>
+
+
+                    <td>
+                        ${escapeHTML(
+                            truncateRequestText(
+                                request.description || "",
+                                65
+                            )
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${location}
+                    </td>
+
+
+                    <td>
+                        <span class="
+                            request-badge
+                            priority-${escapeHTML(
+                                request.priority || "medium"
+                            )}
+                        ">
+                            ${escapeHTML(
+                                formatRequestLabel(
+                                    request.priority || "medium"
+                                )
+                            )}
+                        </span>
+                    </td>
+
+
+                    <td>
+                        <span class="
+                            request-badge
+                            status-${String(
+                                request.status || "pending"
+                            ).replaceAll("_", "-")}
+                        ">
+                            ${escapeHTML(
+                                formatRequestLabel(
+                                    request.status || "pending"
+                                )
+                            )}
+                        </span>
+                    </td>
+
+
+                    <td>
+                        ${escapeHTML(
+                            request.requestedBy || "—"
+                        )}
+                    </td>
+
+
+                    <td class="${
+                        overdue
+                            ? "request-overdue"
+                            : ""
+                    }">
+
+                        ${
+                            request.dueDate
+                                ? escapeHTML(request.dueDate)
+                                : "—"
+                        }
+
+                        ${
+                            overdue
+                                ? "<small>Overdue</small>"
+                                : ""
+                        }
+
+                    </td>
+
+
+                    <td>
+                        ${escapeHTML(updated)}
+                    </td>
+
+
+                    <td>
+
+                        <div class="request-actions">
+
+                            <button
+                                class="request-action-btn"
+                                title="View"
+                                onclick="viewRequest('${request.id}')">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+
+                            ${
+                                canWriteRequests()
+                                    ? `
+                                    <button
+                                        class="request-action-btn"
+                                        title="Edit"
+                                        onclick="openRequestModal('${request.id}')">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+
+                                    <button
+                                        class="request-action-btn danger"
+                                        title="Delete"
+                                        onclick="deleteRequest('${request.id}')">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                    `
+                                    : ""
+                            }
+
+                        </div>
+
+                    </td>
+
+                </tr>
+            `;
+
+        }).join("");
+}
+
+
+/* ---------------------------------------------------------
+   REQUEST KPIs
+   --------------------------------------------------------- */
+
+function updateRequestKPIs() {
+
+    const total =
+        requests.length;
+
+    const pending =
+        requests.filter(
+            r => r.status === "pending"
+        ).length;
+
+    const progress =
+        requests.filter(
+            r => r.status === "in_progress"
+        ).length;
+
+    const completed =
+        requests.filter(
+            r => r.status === "completed"
+        ).length;
+
+    const urgent =
+        requests.filter(
+            r => r.priority === "urgent"
+        ).length;
+
+    const overdue =
+        requests.filter(
+            r => isRequestOverdue(r)
+        ).length;
+
+    const rate =
+        total > 0
+            ? Math.round(
+                (completed / total) * 100
+            )
+            : 0;
+
+
+    if ($("requestsTotal"))
+        $("requestsTotal").textContent =
+            total;
+
+    if ($("requestsPending"))
+        $("requestsPending").textContent =
+            pending;
+
+    if ($("requestsProgress"))
+        $("requestsProgress").textContent =
+            progress;
+
+    if ($("requestsCompleted"))
+        $("requestsCompleted").textContent =
+            completed;
+
+    if ($("requestsUrgent"))
+        $("requestsUrgent").textContent =
+            urgent;
+
+    if ($("requestsOverdue"))
+        $("requestsOverdue").textContent =
+            overdue;
+
+    if ($("requestsRate"))
+        $("requestsRate").textContent =
+            `${rate}%`;
+}
+
+
+/* ---------------------------------------------------------
+   REQUEST HELPERS
+   --------------------------------------------------------- */
+
+function formatRequestLabel(value) {
+
+    return String(value || "")
+        .replaceAll("_", " ")
+        .replace(/\b\w/g, char =>
+            char.toUpperCase()
+        );
+}
+
+
+function truncateRequestText(text, maxLength) {
+
+    const value =
+        String(text || "");
+
+    return value.length > maxLength
+        ? value.slice(0, maxLength) + "..."
+        : value;
+}
+
+
+function formatRequestTimestamp(timestamp) {
+
+    if (!timestamp) {
+        return "—";
+    }
+
+    let date;
+
+    if (
+        typeof timestamp.toDate === "function"
+    ) {
+        date = timestamp.toDate();
+    } else {
+        date = new Date(timestamp);
+    }
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return "—";
+    }
+
+    return date.toLocaleString();
+}
+
+
+function isRequestOverdue(request) {
+
+    if (
+        !request.dueDate ||
+        request.status === "completed" ||
+        request.status === "cancelled" ||
+        request.status === "rejected"
+    ) {
+        return false;
+    }
+
+    const due =
+        new Date(
+            `${request.dueDate}T23:59:59`
+        );
+
+    return (
+        !Number.isNaN(due.getTime()) &&
+        due.getTime() < Date.now()
+    );
+}
+
+
+/* ---------------------------------------------------------
+   EXPORT CSV
+   --------------------------------------------------------- */
+
+function exportRequestsCSV() {
+
+    if (!canReadRequests()) {
+        showToast("Access denied");
+        return;
+    }
+
+    if (!requests.length) {
+        showToast("There are no requests to export.");
+        return;
+    }
+
+    const headers = [
+        "Request ID",
+        "Title",
+        "Type",
+        "Priority",
+        "Status",
+        "Requested By",
+        "Floor",
+        "Apartment",
+        "Room",
+        "Due Date",
+        "Description",
+        "Updated"
+    ];
+
+
+    const rows =
+        requests.map(request => [
+
+            `REQ-${request.id
+                .slice(-6)
+                .toUpperCase()}`,
+
+            request.title || "",
+
+            request.type || "",
+
+            request.priority || "",
+
+            request.status || "",
+
+            request.requestedBy || "",
+
+            request.floor || "",
+
+            request.apartment || "",
+
+            request.room || "",
+
+            request.dueDate || "",
+
+            request.description || "",
+
+            formatRequestTimestamp(
+                request.updatedAt ||
+                request.createdAt
+            )
+
+        ]);
+
+
+    const csv = [
+
+        headers,
+
+        ...rows
+
+    ]
+        .map(row =>
+            row.map(value =>
+                `"${String(value ?? "")
+                    .replaceAll('"', '""')}"`
+            ).join(",")
+        )
+        .join("\n");
+
+
+    const blob =
+        new Blob(
+            ["\ufeff" + csv],
+            {
+                type:
+                    "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const link =
+        document.createElement("a");
+
+    link.href = url;
+
+    link.download =
+        `foyer-nohad-requests-${new Date()
+            .toISOString()
+            .slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    URL.revokeObjectURL(url);
+}
 
 /* =========================================================
    EXPOSE FUNCTIONS USED BY HTML
@@ -6751,6 +7942,18 @@ Object.assign(
 
         removeManagedUser,
 
-        applyRoleDefaultsToEditor
+        applyRoleDefaultsToEditor,
+                openRequestModal,
+        closeRequestModal,
+        saveRequest,
+
+        viewRequest,
+        closeRequestDetails,
+        deleteRequest,
+
+        filterRequests,
+        resetRequestFilters,
+
+        exportRequestsCSV
     }
 );
