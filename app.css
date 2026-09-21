@@ -5689,3 +5689,447 @@ svg {
         animation: none !important;
     }
 }
+/* =========================================================
+   PREMIUM REQUEST MODAL
+   ========================================================= */
+
+#requestModal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+#requestModal .request-modal-content {
+    width: min(920px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 24px;
+    background: #ffffff;
+    box-shadow:
+        0 30px 80px rgba(15, 23, 42, 0.22),
+        0 10px 30px rgba(15, 23, 42, 0.10);
+    animation: requestModalIn .22s ease-out;
+}
+
+@keyframes requestModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+
+/* ---------------------------------------------------------
+   HEADER
+   --------------------------------------------------------- */
+
+#requestModal .request-modal-header {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 26px 30px 24px;
+    background:
+        linear-gradient(
+            135deg,
+            #f8fafc 0%,
+            #ffffff 55%,
+            #f5f3ff 100%
+        );
+    border-bottom: 1px solid #e8edf3;
+}
+
+#requestModal .request-modal-header::after {
+    content: "";
+    position: absolute;
+    left: 30px;
+    bottom: 0;
+    width: 58px;
+    height: 3px;
+    border-radius: 99px;
+    background: #7c3aed;
+}
+
+#requestModal .request-modal-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 7px;
+    color: #7c3aed;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+#requestModal .request-modal-eyebrow::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #8b5cf6;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, .12);
+}
+
+#requestModal .request-modal-header h2 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -.025em;
+}
+
+#requestModal .request-modal-header p {
+    margin: 7px 0 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+#requestModal .request-close {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .9);
+    color: #64748b;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all .18s ease;
+}
+
+#requestModal .request-close:hover {
+    color: #0f172a;
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    transform: rotate(4deg);
+}
+
+
+/* ---------------------------------------------------------
+   FORM AREA
+   --------------------------------------------------------- */
+
+#requestModal .request-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    padding: 28px 30px;
+    max-height: calc(100vh - 230px);
+    overflow-y: auto;
+}
+
+#requestModal .request-form-grid::-webkit-scrollbar {
+    width: 7px;
+}
+
+#requestModal .request-form-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#requestModal .request-form-grid::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 99px;
+}
+
+
+/* ---------------------------------------------------------
+   FORM GROUPS
+   --------------------------------------------------------- */
+
+#requestModal .input-group {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+#requestModal .request-full {
+    grid-column: 1 / -1;
+}
+
+#requestModal .input-group label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #334155;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+}
+
+#requestModal .input-group label::after {
+    content: "";
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #cbd5e1;
+}
+
+#requestModal .input-group:first-child label::after,
+#requestModal #requestTitle + * label::after {
+    background: #8b5cf6;
+}
+
+
+/* ---------------------------------------------------------
+   INPUTS
+   --------------------------------------------------------- */
+
+#requestModal input,
+#requestModal select,
+#requestModal textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #dbe3ec;
+    border-radius: 12px;
+    background: #f8fafc;
+    color: #0f172a;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition:
+        border-color .18s ease,
+        box-shadow .18s ease,
+        background .18s ease,
+        transform .18s ease;
+}
+
+#requestModal input,
+#requestModal select {
+    height: 46px;
+    padding: 0 14px;
+}
+
+#requestModal textarea {
+    min-height: 125px;
+    padding: 13px 14px;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+#requestModal input::placeholder,
+#requestModal textarea::placeholder {
+    color: #a1acbb;
+}
+
+#requestModal input:hover,
+#requestModal select:hover,
+#requestModal textarea:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+}
+
+#requestModal input:focus,
+#requestModal select:focus,
+#requestModal textarea:focus {
+    background: #ffffff;
+    border-color: #8b5cf6;
+    box-shadow:
+        0 0 0 4px rgba(139, 92, 246, .10);
+}
+
+
+/* ---------------------------------------------------------
+   IMPORTANT FIELDS
+   --------------------------------------------------------- */
+
+#requestModal #requestTitle {
+    height: 52px;
+    background: #ffffff;
+    border-color: #cbd5e1;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#requestModal #requestDescription {
+    background: #ffffff;
+}
+
+#requestModal #requestDescription:focus,
+#requestModal #requestTitle:focus {
+    border-color: #7c3aed;
+    box-shadow:
+        0 0 0 4px rgba(124, 58, 237, .10);
+}
+
+
+/* ---------------------------------------------------------
+   SELECT ARROWS
+   --------------------------------------------------------- */
+
+#requestModal select {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 38px;
+    background-image:
+        linear-gradient(45deg, transparent 50%, #64748b 50%),
+        linear-gradient(135deg, #64748b 50%, transparent 50%);
+    background-position:
+        calc(100% - 17px) 20px,
+        calc(100% - 12px) 20px;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+}
+
+
+/* ---------------------------------------------------------
+   LOCATION SECTION
+   --------------------------------------------------------- */
+
+#requestModal #requestFloor,
+#requestModal #requestApartment,
+#requestModal #requestRoom {
+    text-align: center;
+    font-weight: 600;
+}
+
+
+/* ---------------------------------------------------------
+   DATE FIELD
+   --------------------------------------------------------- */
+
+#requestModal input[type="date"] {
+    color-scheme: light;
+    cursor: pointer;
+}
+
+
+/* ---------------------------------------------------------
+   FOOTER
+   --------------------------------------------------------- */
+
+#requestModal .request-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 18px 30px;
+    border-top: 1px solid #e8edf3;
+    background: #ffffff;
+}
+
+#requestModal .request-modal-footer button {
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 11px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all .18s ease;
+}
+
+#requestModal .request-modal-footer .btn-secondary-export {
+    border: 1px solid #dbe3ec;
+    background: #ffffff;
+    color: #475569;
+}
+
+#requestModal .request-modal-footer .btn-secondary-export:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+#requestModal .request-modal-footer .btn-primary-print {
+    min-width: 145px;
+    border: 0;
+    background: #7c3aed;
+    color: #ffffff;
+    box-shadow:
+        0 7px 18px rgba(124, 58, 237, .22);
+}
+
+#requestModal .request-modal-footer .btn-primary-print:hover {
+    background: #6d28d9;
+    transform: translateY(-1px);
+    box-shadow:
+        0 10px 22px rgba(124, 58, 237, .28);
+}
+
+#requestModal .request-modal-footer .btn-primary-print i {
+    margin-right: 7px;
+}
+
+
+/* ---------------------------------------------------------
+   MOBILE
+   --------------------------------------------------------- */
+
+@media (max-width: 720px) {
+
+    #requestModal {
+        padding: 10px;
+    }
+
+    #requestModal .request-modal-content {
+        max-height: calc(100vh - 20px);
+        border-radius: 18px;
+    }
+
+    #requestModal .request-modal-header {
+        padding: 20px;
+    }
+
+    #requestModal .request-modal-header h2 {
+        font-size: 20px;
+    }
+
+    #requestModal .request-form-grid {
+        grid-template-columns: 1fr;
+        padding: 20px;
+        gap: 15px;
+        max-height: calc(100vh - 205px);
+    }
+
+    #requestModal .request-full {
+        grid-column: auto;
+    }
+
+    #requestModal .request-modal-footer {
+        padding: 14px 20px;
+    }
+
+    #requestModal .request-modal-footer button {
+        flex: 1;
+    }
+}
+.request-title-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.request-title-icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: #ede9fe;
+    color: #7c3aed;
+    font-size: 19px;
+}
