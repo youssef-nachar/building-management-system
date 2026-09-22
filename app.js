@@ -7034,47 +7034,47 @@ async function saveRequest() {
             return;
         }
 
-        const requestData = {
+            const requestData = {
 
-            title,
+                title,
 
-            type:
-                $("requestType")?.value ||
-                "Maintenance",
+                type:
+                    $("requestType")?.value ||
+                    "Maintenance",
 
-            priority:
-                $("requestPriority")?.value ||
-                "medium",
+                priority:
+                    $("requestPriority")?.value ||
+                    "medium",
 
-            status:
-                $("requestStatus")?.value ||
-                "pending",
+                status:
+                    $("requestStatus")?.value ||
+                    "pending",
 
-            requestedBy:
-                $("requestRequestedBy")?.value.trim() ||
-                "",
+                requestedBy:
+                    $("requestRequestedBy")?.value.trim() ||
+                    "",
 
-            floor:
-                $("requestFloor")?.value.trim() ||
-                "",
+                floor:
+                    $("requestFloor")?.value.trim() ||
+                    "",
 
-            apartment:
-                $("requestApartment")?.value.trim() ||
-                "",
+                apartment:
+                    $("requestApartment")?.value.trim() ||
+                    "",
 
-            room:
-                $("requestRoom")?.value.trim() ||
-                "",
+                room:
+                    $("requestRoom")?.value.trim() ||
+                    "",
 
-            dueDate:
-                $("requestDueDate")?.value ||
-                "",
+                dueDate:
+                    $("requestDueDate")?.value ||
+                    "",
 
-            description,
+                description,
 
-            updatedAt:
-                serverTimestamp()
-        };
+                updatedAt:
+                    serverTimestamp()
+            };
 
 
         if (editingRequestId) {
@@ -7120,32 +7120,47 @@ async function saveRequest() {
    MARK REQUEST AS RESOLVED
    --------------------------------------------------------- */
 function getRequestStatus(request) {
-    // إذا كان الطلب محلولاً، لا يصبح Overdue
+
+    const status =
+        String(
+            request.status || "pending"
+        ).toLowerCase();
+
+
+    /*
+     * Resolved يبقى Resolved
+     */
     if (
-        request.status === "resolved" ||
-        request.status === "Resolved"
+        status === "resolved" ||
+        status === "completed"
     ) {
-        return "Resolved";
+        return "resolved";
     }
 
-    const createdAt =
-        request.createdAt?.toDate?.() ||
-        (request.createdAt ? new Date(request.createdAt) : null);
 
-    if (!createdAt || isNaN(createdAt.getTime())) {
-        return request.status || "Pending";
+    /*
+     * In Progress
+     */
+    if (
+        status === "in_progress" ||
+        status === "in progress"
+    ) {
+        return "in_progress";
     }
 
-    const now = new Date();
 
-    const diffMs = now.getTime() - createdAt.getTime();
-    const diffDays = diffMs / (1000 * 60 * 60 * 24);
-
-    if (diffDays >= 3) {
-        return "Overdue";
+    /*
+     * حساب Overdue
+     */
+    if (isRequestOverdue(request)) {
+        return "overdue";
     }
 
-    return "Pending";
+
+    /*
+     * الحالة الافتراضية
+     */
+    return "pending";
 }
 async function resolveRequest(requestId) {
 
@@ -7662,26 +7677,8 @@ function renderRequests() {
              * تحديد الحالة التي ستظهر في الجدول
              */
 
-            let displayStatus =
-                String(
-                    request.status || "pending"
-                ).toLowerCase();
-
-
-            /*
-             * إذا لم يكن الطلب Resolved
-             * ومر عليه 3 أيام أو أكثر
-             * يصبح Overdue تلقائياً
-             */
-
-            if (
-                displayStatus !== "resolved" &&
-                displayStatus !== "completed" &&
-                overdue
-            ) {
-                displayStatus = "overdue";
-            }
-
+const displayStatus =
+    getRequestStatus(request);
 
             const updated =
                 formatRequestTimestamp(
@@ -7862,73 +7859,194 @@ function renderRequests() {
    REQUEST KPIs
    --------------------------------------------------------- */
 
+/* ---------------------------------------------------------
+   REQUEST KPIs
+   --------------------------------------------------------- */
+
 function updateRequestKPIs() {
 
     const total =
         requests.length;
 
+
+    /*
+     * PENDING
+     * الطلبات التي لم تبدأ بعد
+     */
     const pending =
-        requests.filter(
-            r => r.status === "pending"
-        ).length;
+        requests.filter(request => {
 
+            const status =
+                String(
+                    request.status || "pending"
+                ).toLowerCase();
+
+            return status === "pending";
+
+        }).length;
+
+
+    /*
+     * IN PROGRESS
+     */
     const progress =
-        requests.filter(
-            r => r.status === "in_progress"
-        ).length;
+        requests.filter(request => {
 
-    const completed =
-        requests.filter(
-            r => r.status === "completed"
-        ).length;
+            const status =
+                String(
+                    request.status || ""
+                ).toLowerCase();
 
+            return (
+                status === "in_progress" ||
+                status === "in progress"
+            );
+
+        }).length;
+
+
+    /*
+     * RESOLVED
+     *
+     * مهم:
+     * resolveRequest() يحفظ:
+     *
+     * status: "resolved"
+     *
+     * لذلك يجب أن نحسب resolved وليس completed.
+     */
+    const resolved =
+        requests.filter(request => {
+
+            const status =
+                String(
+                    request.status || ""
+                ).toLowerCase();
+
+            return (
+                status === "resolved" ||
+                status === "completed"
+            );
+
+        }).length;
+
+
+    /*
+     * URGENT
+     */
     const urgent =
-        requests.filter(
-            r => r.priority === "urgent"
-        ).length;
+        requests.filter(request => {
 
+            return String(
+                request.priority || ""
+            ).toLowerCase() === "urgent";
+
+        }).length;
+
+
+    /*
+     * OVERDUE
+     *
+     * isRequestOverdue() تقوم بالحساب
+     * بناءً على createdAt و 3 أيام.
+     *
+     * والـ resolved لا تعتبر Overdue.
+     */
     const overdue =
-        requests.filter(
-            r => isRequestOverdue(r)
-        ).length;
+        requests.filter(request => {
 
+            return isRequestOverdue(request);
+
+        }).length;
+
+
+    /*
+     * نسبة الإنجاز
+     */
     const rate =
         total > 0
             ? Math.round(
-                (completed / total) * 100
+                (resolved / total) * 100
             )
             : 0;
 
 
-    if ($("requestsTotal"))
+    /*
+     * تحديث KPI - Total
+     */
+    if ($("requestsTotal")) {
+
         $("requestsTotal").textContent =
             total;
 
-    if ($("requestsPending"))
+    }
+
+
+    /*
+     * تحديث KPI - Pending
+     */
+    if ($("requestsPending")) {
+
         $("requestsPending").textContent =
             pending;
 
-    if ($("requestsProgress"))
+    }
+
+
+    /*
+     * تحديث KPI - In Progress
+     */
+    if ($("requestsProgress")) {
+
         $("requestsProgress").textContent =
             progress;
 
-    if ($("requestsCompleted"))
-        $("requestsCompleted").textContent =
-            completed;
+    }
 
-    if ($("requestsUrgent"))
+
+    /*
+     * تحديث KPI - Resolved
+     */
+    if ($("requestsCompleted")) {
+
+        $("requestsCompleted").textContent =
+            resolved;
+
+    }
+
+
+    /*
+     * تحديث KPI - Urgent
+     */
+    if ($("requestsUrgent")) {
+
         $("requestsUrgent").textContent =
             urgent;
 
-    if ($("requestsOverdue"))
+    }
+
+
+    /*
+     * تحديث KPI - Overdue
+     */
+    if ($("requestsOverdue")) {
+
         $("requestsOverdue").textContent =
             overdue;
 
-    if ($("requestsRate"))
+    }
+
+
+    /*
+     * تحديث KPI - Completion Rate
+     */
+    if ($("requestsRate")) {
+
         $("requestsRate").textContent =
             `${rate}%`;
-}
 
+    }
+}
 
 /* ---------------------------------------------------------
    REQUEST HELPERS
@@ -7985,12 +8103,15 @@ function formatRequestTimestamp(timestamp) {
 
 function isRequestOverdue(request) {
 
-    // الطلب المحلول لا يصبح Overdue
     const status =
         String(
             request.status || "pending"
         ).toLowerCase();
 
+
+    /*
+     * Resolved لا تصبح Overdue
+     */
     if (
         status === "resolved" ||
         status === "completed"
@@ -7999,7 +8120,6 @@ function isRequestOverdue(request) {
     }
 
 
-    // تاريخ إنشاء الطلب
     const createdAt =
         request.createdAt?.toDate?.() ||
         (
@@ -8009,7 +8129,6 @@ function isRequestOverdue(request) {
         );
 
 
-    // إذا لم يوجد تاريخ إنشاء
     if (
         !createdAt ||
         isNaN(createdAt.getTime())
@@ -8018,11 +8137,10 @@ function isRequestOverdue(request) {
     }
 
 
-    // الوقت الحالي
-    const now = new Date();
+    const now =
+        new Date();
 
 
-    // الفرق بالأيام
     const diffMs =
         now.getTime() -
         createdAt.getTime();
@@ -8033,10 +8151,8 @@ function isRequestOverdue(request) {
         (1000 * 60 * 60 * 24);
 
 
-    // بعد 3 أيام يصبح Overdue
     return diffDays >= 3;
 }
-
 /* ---------------------------------------------------------
    EXPORT CSV
    --------------------------------------------------------- */
