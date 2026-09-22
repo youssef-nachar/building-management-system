@@ -632,31 +632,31 @@ async function loadCurrentUserRole(user) {
         "viewer"
     ];
 
-if (
-    !allowedRoles.includes(profile.role) ||
-    profile.status === "suspended"
-) {
-    currentRole = null;
-    currentCompanyId = null;
-    currentUserProfile = null;
+    if (
+        !allowedRoles.includes(profile.role) ||
+        profile.status === "suspended"
+    ) {
+        currentRole = null;
+        currentCompanyId = null;
+        currentUserProfile = null;
 
-    throw new Error(
-        "This account is not authorized."
-    );
-}
+        throw new Error(
+            "This account is not authorized."
+        );
+    }
 
-currentRole = profile.role;
+    currentRole = profile.role;
 
-currentCompanyId = COMPANY_ID;
+    currentCompanyId = COMPANY_ID;
 
-currentUserProfile = {
-    uid: user.uid,
-    ...profile,
-    companyId: COMPANY_ID,
-    permissions:
-        profile.permissions ||
-        getRoleDefaultPermissions(profile.role)
-};
+    currentUserProfile = {
+        uid: user.uid,
+        ...profile,
+        companyId: COMPANY_ID,
+        permissions:
+            profile.permissions ||
+            getRoleDefaultPermissions(profile.role)
+    };
 
     currentRole =
         profile.role;
@@ -785,11 +785,11 @@ function applyRoleUI() {
                     ? ""
                     : "none";
         });
-document
-    .querySelectorAll("[data-requests-only]")
-    .forEach(el => {
-        el.style.display = "";
-    });
+    document
+        .querySelectorAll("[data-requests-only]")
+        .forEach(el => {
+            el.style.display = "";
+        });
 
     /*
      * Explicit finance elements
@@ -2107,7 +2107,7 @@ async function startRealtimeData() {
         await loadUsers();
     }
 
-startRequestsRealtime();
+    startRequestsRealtime();
 }
 
 
@@ -3214,22 +3214,22 @@ async function updateBedUI(index) {
 
             <div class="full-room-room-name">
                 ${escapeHTML(
-                    c.name || "Customer"
-                )}
+            c.name || "Customer"
+        )}
             </div>
 
             <div class="full-room-room-details">
 
                 📞 ${escapeHTML(
-                    c.phone || "-"
-                )}
+            c.phone || "-"
+        )}
 
                 <br>
 
                 Parent:
                 ${escapeHTML(
-                    c.parentPhone || "-"
-                )}
+            c.parentPhone || "-"
+        )}
 
                 <br>
 
@@ -3242,17 +3242,15 @@ async function updateBedUI(index) {
             <div class="full-room-room-footer">
 
                 <span
-                    class="full-room-room-status ${
-                        c.paid === "Paid"
-                            ? "paid"
-                            : "unpaid"
-                    }"
+                    class="full-room-room-status ${c.paid === "Paid"
+                ? "paid"
+                : "unpaid"
+            }"
                 >
-                    ${
-                        c.paid === "Paid"
-                            ? "✓ PAID"
-                            : "⚠ UNPAID"
-                    }
+                    ${c.paid === "Paid"
+                ? "✓ PAID"
+                : "⚠ UNPAID"
+            }
                 </span>
 
                 <span class="full-room-room-rent">
@@ -3350,28 +3348,28 @@ async function updateBedUI(index) {
 
         <b>
             ${escapeHTML(
-                c.name || "Customer"
-            )}
+        c.name || "Customer"
+    )}
         </b>
 
         <br>
 
         ${escapeHTML(
-            c.phone || "-"
-        )}
+        c.phone || "-"
+    )}
 
         <br>
 
         Parent:
         ${escapeHTML(
-            c.parentPhone || "-"
-        )}
+        c.parentPhone || "-"
+    )}
 
         <br>
 
         ${escapeHTML(
-            c.date || "-"
-        )}
+        c.date || "-"
+    )}
 
     `;
 
@@ -4650,13 +4648,13 @@ function openTab(tabName) {
     // =========================
     // Hide all pages safely
     // =========================
-const pages = [
-    "residentsPage",
-    "requestsPage",
-    "financePage",
-    "paidClientsPage",
-    "usersPage"
-];
+    const pages = [
+        "residentsPage",
+        "requestsPage",
+        "financePage",
+        "paidClientsPage",
+        "usersPage"
+    ];
 
     pages.forEach(id => {
         const page = document.getElementById(id);
@@ -4678,47 +4676,47 @@ const pages = [
     // =========================
     let pageId = null;
 
- switch (tabName) {
+    switch (tabName) {
 
-    case "residents":
-        pageId = "residentsPage";
-        break;
+        case "residents":
+            pageId = "residentsPage";
+            break;
 
-    case "requests":
-        pageId = "requestsPage";
+        case "requests":
+            pageId = "requestsPage";
 
-        if (typeof loadRequests === "function") {
-            loadRequests();
-        }
+            if (typeof loadRequests === "function") {
+                loadRequests();
+            }
 
-        break;
+            break;
 
-    case "finance":
-        pageId = "financePage";
-        break;
+        case "finance":
+            pageId = "financePage";
+            break;
 
-    case "paidClients":
-        pageId = "paidClientsPage";
-        break;
+        case "paidClients":
+            pageId = "paidClientsPage";
+            break;
 
-    case "users":
-        pageId = "usersPage";
+        case "users":
+            pageId = "usersPage";
 
-        if (!isAdminRole()) {
-            showToast("Access denied");
+            if (!isAdminRole()) {
+                showToast("Access denied");
+                return;
+            }
+
+            if (typeof loadUsers === "function") {
+                loadUsers();
+            }
+
+            break;
+
+        default:
+            console.warn("Unknown tab:", tabName);
             return;
-        }
-
-        if (typeof loadUsers === "function") {
-            loadUsers();
-        }
-
-        break;
-
-    default:
-        console.warn("Unknown tab:", tabName);
-        return;
-}
+    }
     // =========================
     // Display selected page
     // =========================
@@ -6724,35 +6722,331 @@ window.addEventListener(
    REQUESTS MANAGEMENT
    ========================================================= */
 
+/* =========================================================
+   REQUESTS MODULE
+   FIRESTORE PATH:
+   companies/foyer-nohad/request
+   ========================================================= */
+
+const REQUESTS_COMPANY_ID = "foyer-nohad";
+const REQUESTS_COLLECTION_NAME = "request";
+
 let requests = [];
 let editingRequestId = null;
 let unsubscribeRequests = null;
 
+
+/* =========================================================
+   REQUEST COLLECTION
+   ========================================================= */
+
+function getRequestsCollection() {
+    if (!db) {
+        throw new Error("Firestore database is not initialized.");
+    }
+
+    return collection(
+        db,
+        "companies",
+        REQUESTS_COMPANY_ID,
+        REQUESTS_COLLECTION_NAME
+    );
+}
+
+function requestDoc(request) {
+    if (!request || !request.id) {
+        throw new Error("Invalid request.");
+    }
+
+    return doc(
+        db,
+        "companies",
+        REQUESTS_COMPANY_ID,
+        REQUESTS_COLLECTION_NAME,
+        request.id
+    );
+}
+
+
+
+
+/* =========================================================
+   MERGE REQUEST SNAPSHOT
+   ========================================================= */
+
+function mergeRequestsSnapshots(
+    snapshots
+) {
+
+    const merged =
+        new Map();
+
+
+    snapshots.forEach(
+        snapshotInfo => {
+
+            if (
+                !snapshotInfo ||
+                !snapshotInfo.snapshot
+            ) {
+                return;
+            }
+
+
+            snapshotInfo.snapshot.docs.forEach(
+                docSnap => {
+
+                    const data =
+                        docSnap.data();
+
+
+                    merged.set(
+                        docSnap.id,
+                        {
+
+                            id:
+                                docSnap.id,
+
+                            requestCompanyId:
+                                REQUESTS_COMPANY_ID,
+
+                            ...data
+
+                        }
+                    );
+                }
+            );
+        }
+    );
+
+
+    requests =
+        Array.from(
+            merged.values()
+        );
+
+
+    /*
+     * الأحدث أولاً
+     */
+    requests.sort(
+        (a, b) => {
+
+            const aTime =
+                a.updatedAt?.toMillis?.() ||
+                a.createdAt?.toMillis?.() ||
+                0;
+
+
+            const bTime =
+                b.updatedAt?.toMillis?.() ||
+                b.createdAt?.toMillis?.() ||
+                0;
+
+
+            return bTime - aTime;
+        }
+    );
+
+
+    renderRequests();
+}
+
+
+/* =========================================================
+   REALTIME REQUESTS
+   ========================================================= */
+
 function startRequestsRealtime() {
 
-    // إلغاء أي Listener سابق
+    // Stop previous listener
     if (unsubscribeRequests) {
-        unsubscribeRequests();
+        try {
+            unsubscribeRequests();
+        } catch (error) {
+            console.warn(
+                "Unable to unsubscribe requests listener:",
+                error
+            );
+        }
+
         unsubscribeRequests = null;
     }
 
+    // User must be allowed by application UI permissions
     if (!canReadRequests()) {
         requests = [];
         renderRequests();
         return;
     }
 
-    unsubscribeRequests = onSnapshot(
-        companyCollection("requests"),
-        snapshot => {
+    if (!db) {
+        console.error(
+            "Firestore database is not initialized."
+        );
+        return;
+    }
 
-            requests = snapshot.docs.map(docSnap => ({
-                id: docSnap.id,
-                ...docSnap.data()
-            }));
+    try {
 
-            // ترتيب الأحدث أولاً
-            requests.sort((a, b) => {
+        const requestCollection =
+            getRequestsCollection();
+
+        unsubscribeRequests = onSnapshot(
+            requestCollection,
+
+            snapshot => {
+
+                requests = snapshot.docs.map(
+                    docSnap => ({
+                        id: docSnap.id,
+                        ...docSnap.data(),
+                        requestCompanyId:
+                            REQUESTS_COMPANY_ID
+                    })
+                );
+
+                requests.sort(
+                    (a, b) => {
+
+                        const aTime =
+                            a.updatedAt?.toMillis?.() ||
+                            a.createdAt?.toMillis?.() ||
+                            0;
+
+                        const bTime =
+                            b.updatedAt?.toMillis?.() ||
+                            b.createdAt?.toMillis?.() ||
+                            0;
+
+                        return bTime - aTime;
+                    }
+                );
+
+                renderRequests();
+            },
+
+            error => {
+
+                console.error(
+                    "Requests listener:",
+                    error
+                );
+
+                if (typeof showToast === "function") {
+                    showToast(
+                        firebaseErrorMessage(error)
+                    );
+                }
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "startRequestsRealtime:",
+            error
+        );
+
+        if (typeof showToast === "function") {
+            showToast(
+                firebaseErrorMessage(error)
+            );
+        }
+    }
+}
+
+
+
+/* =========================================================
+   PERMISSIONS
+   ========================================================= */
+
+function canReadRequests() {
+
+    return (
+
+        isAdminRole() ||
+
+        hasPermission(
+            "requests.read"
+        ) ||
+
+        [
+            "manager",
+            "staff",
+            "accountant",
+            "viewer"
+        ].includes(
+            currentRole
+        )
+
+    );
+}
+
+
+function canWriteRequests() {
+
+    return (
+
+        isAdminRole() ||
+
+        hasPermission(
+            "requests.write"
+        ) ||
+
+        [
+            "manager",
+            "staff"
+        ].includes(
+            currentRole
+        )
+
+    );
+}
+
+
+/* =========================================================
+   LOAD REQUESTS
+   ========================================================= */
+
+async function loadRequests() {
+
+    try {
+
+        requireFirebase();
+        requireCompany();
+
+        if (!canReadRequests()) {
+
+            if (typeof showToast === "function") {
+                showToast("Access denied");
+            }
+
+            return;
+        }
+
+        const requestCollection =
+            getRequestsCollection();
+
+        const snapshot =
+            await getDocs(
+                requestCollection
+            );
+
+        requests =
+            snapshot.docs.map(
+                docSnap => ({
+                    id: docSnap.id,
+                    ...docSnap.data(),
+                    requestCompanyId:
+                        REQUESTS_COMPANY_ID
+                })
+            );
+
+        requests.sort(
+            (a, b) => {
+
                 const aTime =
                     a.updatedAt?.toMillis?.() ||
                     a.createdAt?.toMillis?.() ||
@@ -6764,189 +7058,206 @@ function startRequestsRealtime() {
                     0;
 
                 return bTime - aTime;
-            });
-
-            // تحديث الجدول مباشرة
-            renderRequests();
-        },
-        error => {
-
-            console.error(
-                "Requests listener:",
-                error
-            );
-
-            showToast(
-                firebaseErrorMessage(error)
-            );
-        }
-    );
-}/* ---------------------------------------------------------
-   REQUEST PERMISSIONS
-   --------------------------------------------------------- */
-
-function canReadRequests() {
-    return (
-        isAdminRole() ||
-        hasPermission("requests.read") ||
-        ["manager", "staff", "accountant", "viewer"].includes(currentRole)
-    );
-}
-
-function canWriteRequests() {
-    return (
-        isAdminRole() ||
-        hasPermission("requests.write") ||
-        ["manager", "staff"].includes(currentRole)
-    );
-}
-
-
-/* ---------------------------------------------------------
-   LOAD REQUESTS
-   --------------------------------------------------------- */
-
-async function loadRequests() {
-
-    try {
-
-        requireFirebase();
-        requireCompany();
-
-        if (!canReadRequests()) {
-            showToast("Access denied");
-            return;
-        }
-
-        const snapshot = await getDocs(
-            companyCollection("requests")
+            }
         );
-
-        requests = snapshot.docs.map(docSnap => ({
-            id: docSnap.id,
-            ...docSnap.data()
-        }));
-
-        requests.sort((a, b) => {
-
-            const aTime =
-                a.updatedAt?.toMillis?.() ||
-                a.createdAt?.toMillis?.() ||
-                0;
-
-            const bTime =
-                b.updatedAt?.toMillis?.() ||
-                b.createdAt?.toMillis?.() ||
-                0;
-
-            return bTime - aTime;
-        });
 
         renderRequests();
 
     } catch (error) {
 
-        console.error("loadRequests:", error);
-
-        showToast(
-            firebaseErrorMessage(error)
+        console.error(
+            "loadRequests:",
+            error
         );
+
+        if (typeof showToast === "function") {
+            showToast(
+                firebaseErrorMessage(error)
+            );
+        }
     }
 }
 
 
-/* ---------------------------------------------------------
-   OPEN REQUEST MODAL
-   --------------------------------------------------------- */
 
-function openRequestModal(requestId = null) {
+
+/* =========================================================
+   OPEN REQUEST MODAL
+   ========================================================= */
+
+function openRequestModal(
+    requestId = null
+) {
 
     if (!canWriteRequests()) {
-        showToast("You do not have permission to create or edit requests.");
+
+        showToast(
+            "You do not have permission to create or edit requests."
+        );
+
         return;
     }
 
-    const modal = $("requestModal");
 
-    if (!modal) return;
+    const modal =
+        $("requestModal");
 
-    editingRequestId = requestId;
 
-    const title = $("requestModalTitle");
-    const submitLabel = $("requestSubmitLabel");
+    if (!modal) {
+        return;
+    }
+
+
+    editingRequestId =
+        requestId;
+
+
+    const title =
+        $("requestModalTitle");
+
+
+    const submitLabel =
+        $("requestSubmitLabel");
+
 
     if (requestId) {
 
         const request =
-            requests.find(r => r.id === requestId);
+            requests.find(
+                r => r.id === requestId
+            );
+
 
         if (!request) {
-            showToast("Request not found.");
+
+            showToast(
+                "Request not found."
+            );
+
             return;
         }
 
+
         if (title) {
-            title.textContent = "Edit Request";
+
+            title.textContent =
+                "Edit Request";
         }
+
 
         if (submitLabel) {
-            submitLabel.textContent = "Save Changes";
+
+            submitLabel.textContent =
+                "Save Changes";
         }
 
-        $("requestTitle").value =
-            request.title || "";
 
-        $("requestType").value =
-            request.type || "Maintenance";
+        if ($("requestTitle")) {
 
-        $("requestPriority").value =
-            request.priority || "medium";
+            $("requestTitle").value =
+                request.title || "";
+        }
 
-        $("requestStatus").value =
-            request.status || "pending";
 
-        $("requestRequestedBy").value =
-            request.requestedBy || "";
+        if ($("requestType")) {
 
-        $("requestFloor").value =
-            request.floor ?? "";
+            $("requestType").value =
+                request.type ||
+                "Maintenance";
+        }
 
-        $("requestApartment").value =
-            request.apartment ?? "";
 
-        $("requestRoom").value =
-            request.room ?? "";
+        if ($("requestPriority")) {
 
-        $("requestDueDate").value =
-            request.dueDate || "";
+            $("requestPriority").value =
+                request.priority ||
+                "medium";
+        }
 
-        $("requestDescription").value =
-            request.description || "";
+
+        if ($("requestStatus")) {
+
+            $("requestStatus").value =
+                request.status ||
+                "pending";
+        }
+
+
+        if ($("requestRequestedBy")) {
+
+            $("requestRequestedBy").value =
+                request.requestedBy || "";
+        }
+
+
+        if ($("requestFloor")) {
+
+            $("requestFloor").value =
+                request.floor ?? "";
+        }
+
+
+        if ($("requestApartment")) {
+
+            $("requestApartment").value =
+                request.apartment ?? "";
+        }
+
+
+        if ($("requestRoom")) {
+
+            $("requestRoom").value =
+                request.room ?? "";
+        }
+
+
+        if ($("requestDueDate")) {
+
+            $("requestDueDate").value =
+                request.dueDate || "";
+        }
+
+
+        if ($("requestDescription")) {
+
+            $("requestDescription").value =
+                request.description || "";
+        }
+
 
     } else {
 
         if (title) {
-            title.textContent = "Create New Request";
+
+            title.textContent =
+                "Create New Request";
         }
 
+
         if (submitLabel) {
-            submitLabel.textContent = "Create Request";
+
+            submitLabel.textContent =
+                "Create Request";
         }
+
 
         clearRequestForm();
     }
 
-    modal.style.display = "flex";
+
+    modal.style.display =
+        "flex";
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    CLEAR FORM
-   --------------------------------------------------------- */
+   ========================================================= */
 
 function clearRequestForm() {
 
     const fields = [
+
         "requestTitle",
         "requestRequestedBy",
         "requestFloor",
@@ -6954,265 +7265,454 @@ function clearRequestForm() {
         "requestRoom",
         "requestDueDate",
         "requestDescription"
+
     ];
 
-    fields.forEach(id => {
 
-        const el = $(id);
+    fields.forEach(
+        id => {
 
-        if (el) {
-            el.value = "";
+            const el =
+                $(id);
+
+
+            if (el) {
+
+                el.value =
+                    "";
+            }
         }
-    });
+    );
+
 
     if ($("requestType")) {
+
         $("requestType").value =
             "Maintenance";
     }
 
+
     if ($("requestPriority")) {
+
         $("requestPriority").value =
             "medium";
     }
 
+
     if ($("requestStatus")) {
+
         $("requestStatus").value =
             "pending";
     }
 }
 
 
-/* ---------------------------------------------------------
-   CLOSE MODAL
-   --------------------------------------------------------- */
+/* =========================================================
+   CLOSE REQUEST MODAL
+   ========================================================= */
 
 function closeRequestModal() {
 
-    const modal = $("requestModal");
+    const modal =
+        $("requestModal");
+
 
     if (modal) {
-        modal.style.display = "none";
+
+        modal.style.display =
+            "none";
     }
 
-    editingRequestId = null;
+
+    editingRequestId =
+        null;
+
 
     clearRequestForm();
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    SAVE REQUEST
-   --------------------------------------------------------- */
+   ========================================================= */
 
 async function saveRequest() {
 
     if (!canWriteRequests()) {
-        showToast("You do not have permission to save requests.");
+
+        showToast(
+            "You do not have permission to save requests."
+        );
+
         return;
     }
+
 
     try {
 
         requireFirebase();
+
         requireCompany();
 
+
         const title =
-            $("requestTitle")?.value.trim();
+            $("requestTitle")
+                ?.value
+                .trim();
+
 
         const description =
-            $("requestDescription")?.value.trim();
+            $("requestDescription")
+                ?.value
+                .trim();
+
 
         if (!title) {
-            showToast("Please enter a request title.");
+
+            showToast(
+                "Please enter a request title."
+            );
+
             $("requestTitle")?.focus();
+
             return;
         }
+
 
         if (!description) {
-            showToast("Please enter a description.");
+
+            showToast(
+                "Please enter a description."
+            );
+
             $("requestDescription")?.focus();
+
             return;
         }
 
-            const requestData = {
+
+        const requestData = {
+
+            title:
 
                 title,
 
-                type:
-                    $("requestType")?.value ||
-                    "Maintenance",
 
-                priority:
-                    $("requestPriority")?.value ||
-                    "medium",
+            type:
 
-                status:
-                    $("requestStatus")?.value ||
-                    "pending",
+                $("requestType")?.value ||
+                "Maintenance",
 
-                requestedBy:
-                    $("requestRequestedBy")?.value.trim() ||
-                    "",
 
-                floor:
-                    $("requestFloor")?.value.trim() ||
-                    "",
+            priority:
 
-                apartment:
-                    $("requestApartment")?.value.trim() ||
-                    "",
+                $("requestPriority")?.value ||
+                "medium",
 
-                room:
-                    $("requestRoom")?.value.trim() ||
-                    "",
 
-                dueDate:
-                    $("requestDueDate")?.value ||
-                    "",
+            status:
+
+                $("requestStatus")?.value ||
+                "pending",
+
+
+            requestedBy:
+
+                $("requestRequestedBy")
+                    ?.value
+                    .trim() ||
+                "",
+
+
+            floor:
+
+                $("requestFloor")
+                    ?.value
+                    .trim() ||
+                "",
+
+
+            apartment:
+
+                $("requestApartment")
+                    ?.value
+                    .trim() ||
+                "",
+
+
+            room:
+
+                $("requestRoom")
+                    ?.value
+                    .trim() ||
+                "",
+
+
+            dueDate:
+
+                $("requestDueDate")
+                    ?.value ||
+                "",
+
+
+            description:
 
                 description,
 
-                updatedAt:
-                    serverTimestamp()
-            };
+
+            updatedAt:
+
+                serverTimestamp()
+        };
 
 
+        /*
+         * EDIT
+         */
         if (editingRequestId) {
 
+            const existingRequest =
+                requests.find(
+                    r =>
+                        r.id ===
+                        editingRequestId
+                );
+
+
+            if (!existingRequest) {
+
+                showToast(
+                    "Request not found."
+                );
+
+                return;
+            }
+
+
             await updateDoc(
-                companyDoc(
-                    "requests",
-                    editingRequestId
+
+                requestDoc(
+                    existingRequest
                 ),
+
                 requestData
             );
 
-            showToast("Request updated successfully.");
+
+            showToast(
+                "Request updated successfully."
+            );
+
 
         } else {
+
+            /*
+             * CREATE
+             *
+             * يتم الحفظ دائمًا في:
+             *
+             * companies/foyer-nohad/request
+             */
 
             requestData.createdAt =
                 serverTimestamp();
 
+
             requestData.createdBy =
-                auth.currentUser?.uid || "";
+                auth.currentUser?.uid ||
+                "";
+
 
             await addDoc(
-                companyCollection("requests"),
+
+                getRequestsCollection(),
+
                 requestData
             );
 
-            showToast("Request created successfully.");
+
+            showToast(
+                "Request created successfully."
+            );
         }
+
 
         closeRequestModal();
 
+
     } catch (error) {
 
-        console.error("saveRequest:", error);
+        console.error(
+            "saveRequest:",
+            error
+        );
+
 
         showToast(
-            firebaseErrorMessage(error)
+            firebaseErrorMessage(
+                error
+            )
         );
     }
 }
-/* ---------------------------------------------------------
-   MARK REQUEST AS RESOLVED
-   --------------------------------------------------------- */
-function getRequestStatus(request) {
+
+
+/* =========================================================
+   REQUEST STATUS
+   ========================================================= */
+
+function getRequestStatus(
+    request
+) {
 
     const status =
         String(
-            request.status || "pending"
+            request.status ||
+            "pending"
         ).toLowerCase();
 
 
-    /*
-     * Resolved يبقى Resolved
-     */
     if (
+
         status === "resolved" ||
+
         status === "completed"
+
     ) {
+
         return "resolved";
     }
 
 
-    /*
-     * In Progress
-     */
     if (
+
         status === "in_progress" ||
+
         status === "in progress"
+
     ) {
+
         return "in_progress";
     }
 
 
-    /*
-     * حساب Overdue
-     */
-    if (isRequestOverdue(request)) {
+    if (
+        isRequestOverdue(
+            request
+        )
+    ) {
+
         return "overdue";
     }
 
 
-    /*
-     * الحالة الافتراضية
-     */
     return "pending";
 }
-async function resolveRequest(requestId) {
+
+
+/* =========================================================
+   RESOLVE REQUEST
+   ========================================================= */
+
+async function resolveRequest(
+    requestId
+) {
 
     if (!canWriteRequests()) {
-        showToast("You do not have permission to resolve requests.");
+
+        showToast(
+            "You do not have permission to resolve requests."
+        );
+
         return;
     }
 
-    const request = requests.find(
-        r => r.id === requestId
-    );
+
+    const request =
+        requests.find(
+            r => r.id === requestId
+        );
+
 
     if (!request) {
-        showToast("Request not found.");
+
+        showToast(
+            "Request not found."
+        );
+
         return;
     }
 
-    if (request.status === "resolved") {
-        showToast("This request is already resolved.");
+
+    const status =
+        String(
+            request.status ||
+            ""
+        ).toLowerCase();
+
+
+    if (
+
+        status === "resolved" ||
+
+        status === "completed"
+
+    ) {
+
+        showToast(
+            "This request is already resolved."
+        );
+
         return;
     }
 
-    const confirmed = window.confirm(
-        `Mark "${request.title || "this request"}" as Resolved?`
-    );
+
+    const confirmed =
+        window.confirm(
+            `Mark "${request.title || "this request"}" as Resolved?`
+        );
+
 
     if (!confirmed) {
         return;
     }
 
+
     try {
 
         requireFirebase();
+
         requireCompany();
 
-        await updateDoc(
-            companyDoc("requests", requestId),
-            {
-                status: "resolved",
 
-                resolvedAt: serverTimestamp(),
+        await updateDoc(
+
+            requestDoc(
+                request
+            ),
+
+            {
+
+                status:
+                    "resolved",
+
+                resolvedAt:
+                    serverTimestamp(),
 
                 resolvedBy:
-                    auth.currentUser?.uid || "",
+                    auth.currentUser?.uid ||
+                    "",
 
                 updatedAt:
                     serverTimestamp(),
 
                 updatedBy:
-                    auth.currentUser?.uid || ""
+                    auth.currentUser?.uid ||
+                    ""
+
             }
         );
+
 
         showToast(
             "✓ Request marked as Resolved."
@@ -7226,67 +7726,101 @@ async function resolveRequest(requestId) {
             error
         );
 
-        showToast(
-            firebaseErrorMessage(error)
-        );
 
+        showToast(
+            firebaseErrorMessage(
+                error
+            )
+        );
     }
 }
-/* ---------------------------------------------------------
-   VIEW REQUEST
-   --------------------------------------------------------- */
 
-function viewRequest(requestId) {
+
+/* =========================================================
+   VIEW REQUEST
+   ========================================================= */
+
+function viewRequest(
+    requestId
+) {
 
     const request =
-        requests.find(r => r.id === requestId);
+        requests.find(
+            r => r.id === requestId
+        );
+
 
     if (!request) {
-        showToast("Request not found.");
+
+        showToast(
+            "Request not found."
+        );
+
         return;
     }
+
 
     const modal =
         $("requestDetailsModal");
 
+
     const body =
         $("requestDetailsBody");
+
 
     const number =
         $("requestDetailsNo");
 
+
     const title =
         $("requestDetailsTitle");
 
-    if (!modal || !body) return;
+
+    if (!modal || !body) {
+        return;
+    }
+
 
     if (number) {
+
         number.textContent =
             "REQ-" +
-            request.id.slice(-6).toUpperCase();
+            request.id
+                .slice(-6)
+                .toUpperCase();
     }
+
 
     if (title) {
+
         title.textContent =
-            request.title || "Request Details";
+            request.title ||
+            "Request Details";
     }
 
+
     const location = [
+
         request.floor
             ? `Floor ${escapeHTML(request.floor)}`
             : "",
+
         request.apartment
             ? `Apartment ${escapeHTML(request.apartment)}`
             : "",
+
         request.room
             ? `Room ${escapeHTML(request.room)}`
             : ""
+
     ]
         .filter(Boolean)
-        .join(" • ") || "Not specified";
+        .join(" • ") ||
+        "Not specified";
 
 
     body.innerHTML = `
+
         <div style="padding:20px">
 
             <div style="
@@ -7297,72 +7831,133 @@ function viewRequest(requestId) {
             ">
 
                 <div>
+
                     <small style="color:#94a3b8">
                         TYPE
                     </small>
-                    <strong style="display:block;margin-top:4px">
-                        ${escapeHTML(request.type || "General")}
+
+                    <strong style="
+                        display:block;
+                        margin-top:4px
+                    ">
+
+                        ${escapeHTML(
+                            request.type ||
+                            "General"
+                        )}
+
                     </strong>
+
                 </div>
 
+
                 <div>
+
                     <small style="color:#94a3b8">
                         PRIORITY
                     </small>
-                    <strong style="display:block;margin-top:4px">
+
+                    <strong style="
+                        display:block;
+                        margin-top:4px
+                    ">
+
                         ${escapeHTML(
                             formatRequestLabel(
-                                request.priority || "medium"
+                                request.priority ||
+                                "medium"
                             )
                         )}
+
                     </strong>
+
                 </div>
 
+
                 <div>
+
                     <small style="color:#94a3b8">
                         STATUS
                     </small>
-                    <strong style="display:block;margin-top:4px">
+
+                    <strong style="
+                        display:block;
+                        margin-top:4px
+                    ">
+
                         ${escapeHTML(
                             formatRequestLabel(
-                                request.status || "pending"
+                                request.status ||
+                                "pending"
                             )
                         )}
+
                     </strong>
+
                 </div>
 
+
                 <div>
+
                     <small style="color:#94a3b8">
                         REQUESTED BY
                     </small>
-                    <strong style="display:block;margin-top:4px">
+
+                    <strong style="
+                        display:block;
+                        margin-top:4px
+                    ">
+
                         ${escapeHTML(
-                            request.requestedBy || "Not specified"
+                            request.requestedBy ||
+                            "Not specified"
                         )}
+
                     </strong>
+
                 </div>
 
+
                 <div>
+
                     <small style="color:#94a3b8">
                         LOCATION
                     </small>
-                    <strong style="display:block;margin-top:4px">
+
+                    <strong style="
+                        display:block;
+                        margin-top:4px
+                    ">
+
                         ${location}
+
                     </strong>
+
                 </div>
 
+
                 <div>
+
                     <small style="color:#94a3b8">
                         DUE DATE
                     </small>
-                    <strong style="display:block;margin-top:4px">
+
+                    <strong style="
+                        display:block;
+                        margin-top:4px
+                    ">
+
                         ${escapeHTML(
-                            request.dueDate || "No due date"
+                            request.dueDate ||
+                            "No due date"
                         )}
+
                     </strong>
+
                 </div>
 
             </div>
+
 
             <div style="
                 background:#f8fafc;
@@ -7370,9 +7965,11 @@ function viewRequest(requestId) {
                 border-radius:14px;
                 padding:16px;
             ">
+
                 <small style="color:#94a3b8">
                     DESCRIPTION
                 </small>
+
 
                 <p style="
                     white-space:pre-wrap;
@@ -7380,105 +7977,156 @@ function viewRequest(requestId) {
                     color:#334155;
                     margin:8px 0 0;
                 ">
+
                     ${escapeHTML(
-                        request.description || ""
+                        request.description ||
+                        ""
                     )}
+
                 </p>
+
             </div>
+
 
             ${
                 canWriteRequests()
+
                     ? `
+
                     <div style="
                         display:flex;
                         justify-content:flex-end;
                         gap:8px;
                         margin-top:18px;
                     ">
+
                         <button
                             class="btn-secondary-export"
                             onclick="closeRequestDetails();openRequestModal('${request.id}')">
+
                             Edit
+
                         </button>
+
                     </div>
+
                     `
+
                     : ""
             }
 
         </div>
+
     `;
 
-    modal.style.display = "flex";
+
+    modal.style.display =
+        "flex";
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    CLOSE DETAILS
-   --------------------------------------------------------- */
+   ========================================================= */
 
 function closeRequestDetails() {
 
     const modal =
         $("requestDetailsModal");
 
+
     if (modal) {
-        modal.style.display = "none";
+
+        modal.style.display =
+            "none";
     }
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    DELETE REQUEST
-   --------------------------------------------------------- */
+   ========================================================= */
 
-async function deleteRequest(requestId) {
+async function deleteRequest(
+    requestId
+) {
 
     if (!canWriteRequests()) {
-        showToast("You do not have permission to delete requests.");
+
+        showToast(
+            "You do not have permission to delete requests."
+        );
+
         return;
     }
 
-    const request =
-        requests.find(r => r.id === requestId);
 
-    if (!request) return;
+    const request =
+        requests.find(
+            r => r.id === requestId
+        );
+
+
+    if (!request) {
+
+        showToast(
+            "Request not found."
+        );
+
+        return;
+    }
+
 
     const confirmed =
         window.confirm(
             `Delete request "${request.title || ""}"?`
         );
 
-    if (!confirmed) return;
+
+    if (!confirmed) {
+        return;
+    }
+
 
     try {
 
         requireFirebase();
+
         requireCompany();
 
+
         await deleteDoc(
-            companyDoc(
-                "requests",
-                requestId
+            requestDoc(
+                request
             )
         );
 
-        showToast("Request deleted.");
+
+        showToast(
+            "Request deleted."
+        );
 
 
     } catch (error) {
 
-        console.error("deleteRequest:", error);
+        console.error(
+            "deleteRequest:",
+            error
+        );
+
 
         showToast(
-            firebaseErrorMessage(error)
+            firebaseErrorMessage(
+                error
+            )
         );
     }
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    FILTERS
-   --------------------------------------------------------- */
+   ========================================================= */
 
 function filterRequests() {
 
@@ -7489,131 +8137,193 @@ function filterRequests() {
 function resetRequestFilters() {
 
     if ($("requestSearch")) {
-        $("requestSearch").value = "";
+
+        $("requestSearch").value =
+            "";
     }
+
 
     if ($("requestStatusFilter")) {
-        $("requestStatusFilter").value = "all";
+
+        $("requestStatusFilter").value =
+            "all";
     }
+
 
     if ($("requestPriorityFilter")) {
-        $("requestPriorityFilter").value = "all";
+
+        $("requestPriorityFilter").value =
+            "all";
     }
 
+
     if ($("requestTypeFilter")) {
-        $("requestTypeFilter").value = "all";
+
+        $("requestTypeFilter").value =
+            "all";
     }
+
 
     renderRequests();
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    RENDER REQUESTS
-   --------------------------------------------------------- */
+   ========================================================= */
 
 function renderRequests() {
 
     const body =
         $("requestsTableBody");
 
-    if (!body) return;
+
+    if (!body) {
+        return;
+    }
+
 
     const search =
-        ($("requestSearch")?.value || "")
+        (
+            $("requestSearch")
+                ?.value ||
+            ""
+        )
             .trim()
             .toLowerCase();
 
+
     const status =
-        $("requestStatusFilter")?.value ||
+        $("requestStatusFilter")
+            ?.value ||
         "all";
+
 
     const priority =
-        $("requestPriorityFilter")?.value ||
+        $("requestPriorityFilter")
+            ?.value ||
         "all";
 
+
     const type =
-        $("requestTypeFilter")?.value ||
+        $("requestTypeFilter")
+            ?.value ||
         "all";
 
 
     const filtered =
-        requests.filter(request => {
+        requests.filter(
+            request => {
 
-            const haystack = [
+                const haystack = [
 
-                request.title,
-                request.description,
-                request.requestedBy,
-                request.type,
-                request.floor,
-                request.apartment,
-                request.room
+                    request.title,
 
-            ]
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase();
+                    request.description,
+
+                    request.requestedBy,
+
+                    request.type,
+
+                    request.floor,
+
+                    request.apartment,
+
+                    request.room
+
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
 
 
-            if (
-                search &&
-                !haystack.includes(search)
-            ) {
-                return false;
+                if (
+
+                    search &&
+
+                    !haystack.includes(
+                        search
+                    )
+
+                ) {
+
+                    return false;
+                }
+
+
+                let requestStatus =
+                    String(
+                        request.status ||
+                        "pending"
+                    ).toLowerCase();
+
+
+                if (
+
+                    requestStatus !==
+                        "resolved" &&
+
+                    requestStatus !==
+                        "completed" &&
+
+                    isRequestOverdue(
+                        request
+                    )
+
+                ) {
+
+                    requestStatus =
+                        "overdue";
+                }
+
+
+                if (
+
+                    status !==
+                        "all" &&
+
+                    requestStatus !==
+                        String(
+                            status
+                        ).toLowerCase()
+
+                ) {
+
+                    return false;
+                }
+
+
+                if (
+
+                    priority !==
+                        "all" &&
+
+                    request.priority !==
+                        priority
+
+                ) {
+
+                    return false;
+                }
+
+
+                if (
+
+                    type !==
+                        "all" &&
+
+                    request.type !==
+                        type
+
+                ) {
+
+                    return false;
+                }
+
+
+                return true;
             }
-
-
-            /*
-             * حساب حالة الطلب تلقائياً
-             *
-             * Pending  = أقل من 3 أيام
-             * Overdue  = 3 أيام أو أكثر
-             * Resolved = يبقى Resolved
-             */
-
-            let requestStatus =
-                String(
-                    request.status || "pending"
-                ).toLowerCase();
-
-
-            if (
-                requestStatus !== "resolved" &&
-                requestStatus !== "completed" &&
-                isRequestOverdue(request)
-            ) {
-                requestStatus = "overdue";
-            }
-
-
-            if (
-                status !== "all" &&
-                requestStatus !==
-                    String(status).toLowerCase()
-            ) {
-                return false;
-            }
-
-
-            if (
-                priority !== "all" &&
-                request.priority !== priority
-            ) {
-                return false;
-            }
-
-
-            if (
-                type !== "all" &&
-                request.type !== type
-            ) {
-                return false;
-            }
-
-
-            return true;
-        });
+        );
 
 
     updateRequestKPIs();
@@ -7622,21 +8332,33 @@ function renderRequests() {
     if (!filtered.length) {
 
         body.innerHTML = `
+
             <tr>
+
                 <td colspan="9">
+
                     <div class="requests-empty">
+
                         <div class="requests-empty-icon">
+
                             <i class="fa-solid fa-inbox"></i>
+
                         </div>
 
-                        <h3>No requests found</h3>
+                        <h3>
+                            No requests found
+                        </h3>
 
                         <p>
                             Create a new request or change the filters.
                         </p>
+
                     </div>
+
                 </td>
+
             </tr>
+
         `;
 
         return;
@@ -7644,224 +8366,259 @@ function renderRequests() {
 
 
     body.innerHTML =
-        filtered.map(request => {
 
-            const location = [
+        filtered
+            .map(
+                request => {
 
-                request.floor
-                    ? `F${escapeHTML(request.floor)}`
-                    : "",
+                    const location = [
 
-                request.apartment
-                    ? `A${escapeHTML(request.apartment)}`
-                    : "",
+                        request.floor
+                            ? `F${escapeHTML(request.floor)}`
+                            : "",
 
-                request.room
-                    ? `R${escapeHTML(request.room)}`
-                    : ""
+                        request.apartment
+                            ? `A${escapeHTML(request.apartment)}`
+                            : "",
 
-            ]
-                .filter(Boolean)
-                .join(" • ") || "—";
-
-
-            /*
-             * هل الطلب Overdue؟
-             */
-
-            const overdue =
-                isRequestOverdue(request);
-
-
-            /*
-             * تحديد الحالة التي ستظهر في الجدول
-             */
-
-const displayStatus =
-    getRequestStatus(request);
-
-            const updated =
-                formatRequestTimestamp(
-                    request.updatedAt ||
-                    request.createdAt
-                );
-
-
-            return `
-                <tr>
-
-                    <td class="request-title-cell">
-
-                        <strong>
-                            ${escapeHTML(
-                                request.title ||
-                                "Untitled Request"
-                            )}
-                        </strong>
-
-                        <span>
-                            REQ-${request.id
-                                .slice(-6)
-                                .toUpperCase()}
-                        </span>
-
-                    </td>
-
-
-                    <td>
-                        ${escapeHTML(
-                            truncateRequestText(
-                                request.description || "",
-                                65
-                            )
-                        )}
-                    </td>
-
-
-                    <td>
-                        ${location}
-                    </td>
-
-
-                    <td>
-
-                        <span class="
-                            request-badge
-                            priority-${escapeHTML(
-                                request.priority ||
-                                "medium"
-                            )}
-                        ">
-
-                            ${escapeHTML(
-                                formatRequestLabel(
-                                    request.priority ||
-                                    "medium"
-                                )
-                            )}
-
-                        </span>
-
-                    </td>
-
-
-                    <td>
-
-                        <span class="
-                            request-badge
-                            status-${String(
-                                displayStatus
-                            ).replaceAll("_", "-")}
-                        ">
-
-                            ${escapeHTML(
-                                formatRequestLabel(
-                                    displayStatus
-                                )
-                            )}
-
-                        </span>
-
-                    </td>
-
-
-                    <td>
-                        ${escapeHTML(
-                            request.requestedBy || "—"
-                        )}
-                    </td>
-
-
-                    <td class="${
-                        overdue &&
-                        displayStatus !== "resolved" &&
-                        displayStatus !== "completed"
-                            ? "request-overdue"
+                        request.room
+                            ? `R${escapeHTML(request.room)}`
                             : ""
-                    }">
 
-                        ${
-                            request.dueDate
-                                ? escapeHTML(
+                    ]
+                        .filter(Boolean)
+                        .join(" • ") ||
+                        "—";
+
+
+                    const overdue =
+                        isRequestOverdue(
+                            request
+                        );
+
+
+                    const displayStatus =
+                        getRequestStatus(
+                            request
+                        );
+
+
+                    const updated =
+                        formatRequestTimestamp(
+
+                            request.updatedAt ||
+                            request.createdAt
+
+                        );
+
+
+                    return `
+
+                        <tr>
+
+                            <td class="request-title-cell">
+
+                                <strong>
+
+                                    ${escapeHTML(
+                                        request.title ||
+                                        "Untitled Request"
+                                    )}
+
+                                </strong>
+
+                                <span>
+
+                                    REQ-${request.id
+                                        .slice(-6)
+                                        .toUpperCase()}
+
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                ${escapeHTML(
+                                    truncateRequestText(
+                                        request.description ||
+                                        "",
+                                        65
+                                    )
+                                )}
+
+                            </td>
+
+
+                            <td>
+
+                                ${location}
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="
+                                    request-badge
+                                    priority-${escapeHTML(
+                                        request.priority ||
+                                        "medium"
+                                    )}
+                                ">
+
+                                    ${escapeHTML(
+                                        formatRequestLabel(
+                                            request.priority ||
+                                            "medium"
+                                        )
+                                    )}
+
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="
+                                    request-badge
+                                    status-${String(
+                                        displayStatus
+                                    ).replaceAll(
+                                        "_",
+                                        "-"
+                                    )}
+                                ">
+
+                                    ${escapeHTML(
+                                        formatRequestLabel(
+                                            displayStatus
+                                        )
+                                    )}
+
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                ${escapeHTML(
+                                    request.requestedBy ||
+                                    "—"
+                                )}
+
+                            </td>
+
+
+                            <td class="${
+                                overdue &&
+                                displayStatus !==
+                                    "resolved" &&
+                                displayStatus !==
+                                    "completed"
+
+                                    ? "request-overdue"
+
+                                    : ""
+                            }">
+
+                                ${
                                     request.dueDate
-                                )
-                                : "—"
-                        }
 
-                        ${
-                            overdue &&
-                            displayStatus !== "resolved" &&
-                            displayStatus !== "completed"
-                                ? "<small>Overdue</small>"
-                                : ""
-                        }
+                                        ? escapeHTML(
+                                            request.dueDate
+                                        )
 
-                    </td>
+                                        : "—"
+                                }
 
 
-                    <td>
-                        ${escapeHTML(updated)}
-                    </td>
+                                ${
+                                    overdue &&
+                                    displayStatus !==
+                                        "resolved" &&
+                                    displayStatus !==
+                                        "completed"
+
+                                        ? "<small>Overdue</small>"
+
+                                        : ""
+                                }
+
+                            </td>
 
 
-                    <td>
+                            <td>
 
-                        <div class="request-actions">
+                                ${escapeHTML(
+                                    updated
+                                )}
 
-                            <button
-                                class="request-action-btn"
-                                title="View"
-                                onclick="viewRequest('${request.id}')">
-
-                                <i class="fa-solid fa-eye"></i>
-
-                            </button>
+                            </td>
 
 
-                            ${
-                                canWriteRequests()
-                                    ? `
+                            <td>
+
+                                <div class="request-actions">
 
                                     <button
                                         class="request-action-btn"
-                                        title="Edit"
-                                        onclick="openRequestModal('${request.id}')">
+                                        title="View"
+                                        onclick="viewRequest('${request.id}')">
 
-                                        <i class="fa-solid fa-pen"></i>
-
-                                    </button>
-
-
-                                    <button
-                                        class="request-action-btn danger"
-                                        title="Delete"
-                                        onclick="deleteRequest('${request.id}')">
-
-                                        <i class="fa-solid fa-trash"></i>
+                                        <i class="fa-solid fa-eye"></i>
 
                                     </button>
 
-                                    `
-                                    : ""
-                            }
 
-                        </div>
+                                    ${
+                                        canWriteRequests()
 
-                    </td>
+                                            ? `
 
-                </tr>
-            `;
+                                            <button
+                                                class="request-action-btn"
+                                                title="Edit"
+                                                onclick="openRequestModal('${request.id}')">
 
-        }).join("");
+                                                <i class="fa-solid fa-pen"></i>
+
+                                            </button>
+
+
+                                            <button
+                                                class="request-action-btn danger"
+                                                title="Delete"
+                                                onclick="deleteRequest('${request.id}')">
+
+                                                <i class="fa-solid fa-trash"></i>
+
+                                            </button>
+
+                                            `
+
+                                            : ""
+                                    }
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    `;
+                }
+            )
+            .join("");
 }
 
-/* ---------------------------------------------------------
-   REQUEST KPIs
-   --------------------------------------------------------- */
 
-/* ---------------------------------------------------------
+/* =========================================================
    REQUEST KPIs
-   --------------------------------------------------------- */
+   ========================================================= */
 
 function updateRequestKPIs() {
 
@@ -7869,270 +8626,307 @@ function updateRequestKPIs() {
         requests.length;
 
 
-    /*
-     * PENDING
-     * الطلبات التي لم تبدأ بعد
-     */
     const pending =
-        requests.filter(request => {
+        requests.filter(
+            request => {
 
-            const status =
-                String(
-                    request.status || "pending"
-                ).toLowerCase();
-
-            return status === "pending";
-
-        }).length;
+                const status =
+                    String(
+                        request.status ||
+                        "pending"
+                    ).toLowerCase();
 
 
-    /*
-     * IN PROGRESS
-     */
+                return (
+                    status ===
+                    "pending"
+                );
+            }
+        ).length;
+
+
     const progress =
-        requests.filter(request => {
+        requests.filter(
+            request => {
 
-            const status =
-                String(
-                    request.status || ""
-                ).toLowerCase();
-
-            return (
-                status === "in_progress" ||
-                status === "in progress"
-            );
-
-        }).length;
+                const status =
+                    String(
+                        request.status ||
+                        ""
+                    ).toLowerCase();
 
 
-    /*
-     * RESOLVED
-     *
-     * مهم:
-     * resolveRequest() يحفظ:
-     *
-     * status: "resolved"
-     *
-     * لذلك يجب أن نحسب resolved وليس completed.
-     */
+                return (
+
+                    status ===
+                        "in_progress" ||
+
+                    status ===
+                        "in progress"
+
+                );
+            }
+        ).length;
+
+
     const resolved =
-        requests.filter(request => {
+        requests.filter(
+            request => {
 
-            const status =
-                String(
-                    request.status || ""
-                ).toLowerCase();
-
-            return (
-                status === "resolved" ||
-                status === "completed"
-            );
-
-        }).length;
+                const status =
+                    String(
+                        request.status ||
+                        ""
+                    ).toLowerCase();
 
 
-    /*
-     * URGENT
-     */
+                return (
+
+                    status ===
+                        "resolved" ||
+
+                    status ===
+                        "completed"
+
+                );
+            }
+        ).length;
+
+
     const urgent =
-        requests.filter(request => {
+        requests.filter(
+            request => {
 
-            return String(
-                request.priority || ""
-            ).toLowerCase() === "urgent";
+                return (
 
-        }).length;
+                    String(
+                        request.priority ||
+                        ""
+                    ).toLowerCase() ===
+                    "urgent"
+
+                );
+            }
+        ).length;
 
 
-    /*
-     * OVERDUE
-     *
-     * isRequestOverdue() تقوم بالحساب
-     * بناءً على createdAt و 3 أيام.
-     *
-     * والـ resolved لا تعتبر Overdue.
-     */
     const overdue =
-        requests.filter(request => {
+        requests.filter(
+            request => {
 
-            return isRequestOverdue(request);
+                return isRequestOverdue(
+                    request
+                );
+            }
+        ).length;
 
-        }).length;
 
-
-    /*
-     * نسبة الإنجاز
-     */
     const rate =
         total > 0
+
             ? Math.round(
-                (resolved / total) * 100
+                (
+                    resolved /
+                    total
+                ) *
+                100
             )
+
             : 0;
 
 
-    /*
-     * تحديث KPI - Total
-     */
     if ($("requestsTotal")) {
 
         $("requestsTotal").textContent =
             total;
-
     }
 
 
-    /*
-     * تحديث KPI - Pending
-     */
     if ($("requestsPending")) {
 
         $("requestsPending").textContent =
             pending;
-
     }
 
 
-    /*
-     * تحديث KPI - In Progress
-     */
     if ($("requestsProgress")) {
 
         $("requestsProgress").textContent =
             progress;
-
     }
 
 
-    /*
-     * تحديث KPI - Resolved
-     */
     if ($("requestsCompleted")) {
 
         $("requestsCompleted").textContent =
             resolved;
-
     }
 
 
-    /*
-     * تحديث KPI - Urgent
-     */
     if ($("requestsUrgent")) {
 
         $("requestsUrgent").textContent =
             urgent;
-
     }
 
 
-    /*
-     * تحديث KPI - Overdue
-     */
     if ($("requestsOverdue")) {
 
         $("requestsOverdue").textContent =
             overdue;
-
     }
 
 
-    /*
-     * تحديث KPI - Completion Rate
-     */
     if ($("requestsRate")) {
 
         $("requestsRate").textContent =
             `${rate}%`;
-
     }
 }
 
-/* ---------------------------------------------------------
+
+/* =========================================================
    REQUEST HELPERS
-   --------------------------------------------------------- */
+   ========================================================= */
 
-function formatRequestLabel(value) {
+function formatRequestLabel(
+    value
+) {
 
-    return String(value || "")
-        .replaceAll("_", " ")
-        .replace(/\b\w/g, char =>
-            char.toUpperCase()
+    return String(
+        value || ""
+    )
+        .replaceAll(
+            "_",
+            " "
+        )
+        .replace(
+            /\b\w/g,
+            char =>
+                char.toUpperCase()
         );
 }
 
 
-function truncateRequestText(text, maxLength) {
+function truncateRequestText(
+    text,
+    maxLength
+) {
 
     const value =
-        String(text || "");
+        String(
+            text || ""
+        );
 
-    return value.length > maxLength
-        ? value.slice(0, maxLength) + "..."
+
+    return value.length >
+        maxLength
+
+        ? value.slice(
+            0,
+            maxLength
+        ) + "..."
+
         : value;
 }
 
 
-function formatRequestTimestamp(timestamp) {
+function formatRequestTimestamp(
+    timestamp
+) {
 
     if (!timestamp) {
         return "—";
     }
 
+
     let date;
 
+
     if (
-        typeof timestamp.toDate === "function"
+        typeof timestamp.toDate ===
+        "function"
     ) {
-        date = timestamp.toDate();
+
+        date =
+            timestamp.toDate();
+
     } else {
-        date = new Date(timestamp);
+
+        date =
+            new Date(
+                timestamp
+            );
     }
+
 
     if (
         Number.isNaN(
             date.getTime()
         )
     ) {
+
         return "—";
     }
+
 
     return date.toLocaleString();
 }
 
 
-function isRequestOverdue(request) {
+/* =========================================================
+   REQUEST OVERDUE
+   ========================================================= */
+
+function isRequestOverdue(
+    request
+) {
 
     const status =
         String(
-            request.status || "pending"
+            request.status ||
+            "pending"
         ).toLowerCase();
 
 
-    /*
-     * Resolved لا تصبح Overdue
-     */
     if (
+
         status === "resolved" ||
+
         status === "completed"
+
     ) {
+
         return false;
     }
 
 
     const createdAt =
-        request.createdAt?.toDate?.() ||
+
+        request.createdAt
+            ?.toDate?.() ||
+
         (
             request.createdAt
-                ? new Date(request.createdAt)
+
+                ? new Date(
+                    request.createdAt
+                )
+
                 : null
         );
 
 
     if (
+
         !createdAt ||
-        isNaN(createdAt.getTime())
+
+        isNaN(
+            createdAt.getTime()
+        )
+
     ) {
+
         return false;
     }
 
@@ -8142,34 +8936,56 @@ function isRequestOverdue(request) {
 
 
     const diffMs =
+
         now.getTime() -
         createdAt.getTime();
 
 
     const diffDays =
+
         diffMs /
-        (1000 * 60 * 60 * 24);
+        (
+            1000 *
+            60 *
+            60 *
+            24
+        );
 
 
-    return diffDays >= 3;
+    return (
+        diffDays >= 3
+    );
 }
-/* ---------------------------------------------------------
+
+
+/* =========================================================
    EXPORT CSV
-   --------------------------------------------------------- */
+   ========================================================= */
 
 function exportRequestsCSV() {
 
     if (!canReadRequests()) {
-        showToast("Access denied");
+
+        showToast(
+            "Access denied"
+        );
+
         return;
     }
+
 
     if (!requests.length) {
-        showToast("There are no requests to export.");
+
+        showToast(
+            "There are no requests to export."
+        );
+
         return;
     }
 
+
     const headers = [
+
         "Request ID",
         "Title",
         "Type",
@@ -8182,42 +8998,57 @@ function exportRequestsCSV() {
         "Due Date",
         "Description",
         "Updated"
+
     ];
 
 
     const rows =
-        requests.map(request => [
+        requests.map(
+            request => [
 
-            `REQ-${request.id
-                .slice(-6)
-                .toUpperCase()}`,
+                `REQ-${request.id
+                    .slice(-6)
+                    .toUpperCase()}`,
 
-            request.title || "",
+                request.title ||
+                    "",
 
-            request.type || "",
+                request.type ||
+                    "",
 
-            request.priority || "",
+                request.priority ||
+                    "",
 
-            request.status || "",
+                request.status ||
+                    "",
 
-            request.requestedBy || "",
+                request.requestedBy ||
+                    "",
 
-            request.floor || "",
+                request.floor ||
+                    "",
 
-            request.apartment || "",
+                request.apartment ||
+                    "",
 
-            request.room || "",
+                request.room ||
+                    "",
 
-            request.dueDate || "",
+                request.dueDate ||
+                    "",
 
-            request.description || "",
+                request.description ||
+                    "",
 
-            formatRequestTimestamp(
-                request.updatedAt ||
-                request.createdAt
-            )
+                formatRequestTimestamp(
 
-        ]);
+                    request.updatedAt ||
+                    request.createdAt
+
+                )
+
+            ]
+        );
 
 
     const csv = [
@@ -8227,18 +9058,34 @@ function exportRequestsCSV() {
         ...rows
 
     ]
-        .map(row =>
-            row.map(value =>
-                `"${String(value ?? "")
-                    .replaceAll('"', '""')}"`
-            ).join(",")
+        .map(
+            row =>
+
+                row
+                    .map(
+                        value =>
+
+                            `"${String(
+                                value ??
+                                ""
+                            ).replaceAll(
+                                '"',
+                                '""'
+                            )}"`
+                    )
+                    .join(",")
         )
         .join("\n");
 
 
     const blob =
         new Blob(
-            ["\ufeff" + csv],
+
+            [
+                "\ufeff" +
+                csv
+            ],
+
             {
                 type:
                     "text/csv;charset=utf-8;"
@@ -8247,30 +9094,49 @@ function exportRequestsCSV() {
 
 
     const url =
-        URL.createObjectURL(blob);
+        URL.createObjectURL(
+            blob
+        );
+
 
     const link =
-        document.createElement("a");
+        document.createElement(
+            "a"
+        );
 
-    link.href = url;
+
+    link.href =
+        url;
+
 
     link.download =
         `foyer-nohad-requests-${new Date()
             .toISOString()
             .slice(0, 10)}.csv`;
 
-    document.body.appendChild(link);
+
+    document.body.appendChild(
+        link
+    );
+
 
     link.click();
 
+
     link.remove();
 
-    URL.revokeObjectURL(url);
+
+    URL.revokeObjectURL(
+        url
+    );
 }
 
-/* =========================================================
-   EXPOSE FUNCTIONS USED BY HTML
-   ========================================================= */
+const requestsCollection = collection(
+    db,
+    "companies",
+    "foyer-nohad",
+    "request"
+);
 
 Object.assign(
     window,
@@ -8325,7 +9191,7 @@ Object.assign(
         removeManagedUser,
 
         applyRoleDefaultsToEditor,
-                openRequestModal,
+        openRequestModal,
         closeRequestModal,
         saveRequest,
 
@@ -8339,3 +9205,37 @@ Object.assign(
         exportRequestsCSV
     }
 );
+
+function showToast(message, type = "error") {
+    const existing = document.getElementById("app-toast");
+
+    if (existing) {
+        existing.remove();
+    }
+
+    const toast = document.createElement("div");
+
+    toast.id = "app-toast";
+    toast.textContent = String(message || "");
+
+    toast.style.position = "fixed";
+    toast.style.left = "50%";
+    toast.style.bottom = "24px";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.zIndex = "99999";
+    toast.style.padding = "12px 18px";
+    toast.style.borderRadius = "10px";
+    toast.style.background =
+        type === "success" ? "#198754" : "#dc3545";
+    toast.style.color = "#fff";
+    toast.style.fontSize = "14px";
+    toast.style.fontWeight = "600";
+    toast.style.boxShadow = "0 8px 24px rgba(0,0,0,.2)";
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 4000);
+}
+
