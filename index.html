@@ -3,1283 +3,1973 @@
 
 <head>
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
     <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
+
     <title>Foyer Nohad</title>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css">
+
+    <!-- =====================================================
+         FONT AWESOME
+    ====================================================== -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- Existing Main CSS -->
     <link rel="stylesheet" href="./app.css">
+
+    <!-- =====================================================
+         REQUESTS MODULE STYLE
+    ====================================================== -->
 </head>
+
 
 <body>
 
-    <!-- ==========================
-         LOGIN PAGE
-    ========================== -->
-    <div id="loginPage" class="login-page">
-        <div class="login-box">
-            <div class="login-logo">🏢</div>
-            <h1>Building Manager</h1>
-            <p>Resident & Finance Management System</p>
 
-            <div class="input-group">
-                <label>Username</label>
-                <input id="loginUser" type="email" placeholder="Enter Email" autocomplete="username">
+    <!-- =====================================================
+         LOGIN PAGE
+    ====================================================== -->
+
+    <div id="loginPage" class="login-page">
+
+        <div class="login-box">
+
+            <div class="login-logo">
+                🏢
             </div>
 
+            <h1>
+                Building Manager
+            </h1>
+
+            <p>
+                Resident & Finance Management System
+            </p>
+
+
             <div class="input-group">
-                <label>Password</label>
+
+                <label>
+                    Username
+                </label>
+
+                <input id="loginUser" type="email" placeholder="Enter Email" autocomplete="username">
+
+            </div>
+
+
+            <div class="input-group">
+
+                <label>
+                    Password
+                </label>
+
                 <div class="password-box">
+
                     <input id="loginPass" type="password" placeholder="Enter Password" autocomplete="current-password">
+
                     <button type="button" class="toggle-password" onclick="togglePassword()">
+
                         <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
+
+                            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z">
+                            </path>
+
+                            <circle cx="12" cy="12" r="3">
+                            </circle>
+
                         </svg>
+
                     </button>
+
                 </div>
+
             </div>
+
 
             <div class="login-options">
+
                 <label class="remember">
+
                     <input type="checkbox">
-                    <span>Remember Me</span>
+
+                    <span>
+                        Remember Me
+                    </span>
+
                 </label>
+
             </div>
 
+
             <button class="login-btn" onclick="login()">
+
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
+
                     <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+
                     <polyline points="10 17 15 12 10 7" />
+
                     <line x1="15" y1="12" x2="3" y2="12" />
+
                 </svg>
-                <span>Sign In</span>
+
+                <span>
+                    Sign In
+                </span>
+
             </button>
+
+
             <div id="loginError"></div>
 
+
             <div class="auth-actions">
-                <button type="button" class="auth-link" onclick="registerAccount()">Create Account</button>
-                <button type="button" class="auth-link" onclick="resetPassword()">Forgot Password?</button>
+
+                <button type="button" class="auth-link" onclick="registerAccount()">
+
+                    Create Account
+
+                </button>
+
+
+                <button type="button" class="auth-link" onclick="resetPassword()">
+
+                    Forgot Password?
+
+                </button>
+
             </div>
 
 
             <div class="login-footer">
                 Foyer Nohad
             </div>
+
         </div>
+
     </div>
 
-    <!-- ==========================
-         MAIN APPLICATION CONTENT
-    ========================== -->
+
+
+    <!-- =====================================================
+         MAIN APPLICATION
+    ====================================================== -->
+
     <div id="appContent" class="hidden">
 
-        <!-- Header -->
+
+        <!-- =====================================================
+             MAIN HEADER
+        ====================================================== -->
+
         <header class="main-header">
+
             <div class="brand-title">
+
                 <span class="brand-icon">
+
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
                         stroke-linejoin="round">
+
                         <path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
+
                         <path d="M16 9h2a2 2 0 0 1 2 2v10" />
+
                         <path d="M8 7h4" />
                         <path d="M8 11h4" />
                         <path d="M8 15h4" />
                         <path d="M8 19h4" />
+
                         <path d="M20 21H2" />
+
                     </svg>
+
                 </span>
-                <h1>Foyer Nohad</h1>
+
+                <h1>
+                    Foyer Nohad
+                </h1>
+
             </div>
+
 
             <button onclick="logout()" class="logout-btn" title="Sign out of your account">
+
                 <svg class="logout-svg" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
+
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4">
+                    </path>
+
+                    <polyline points="16 17 21 12 16 7">
+                    </polyline>
+
+                    <line x1="21" y1="12" x2="9" y2="12">
+                    </line>
+
                 </svg>
-                <span>Logout</span>
+
+                <span>
+                    Logout
+                </span>
+
             </button>
+
         </header>
 
-        <!-- Navigation Tabs -->
-        <!-- ==========================
-     NAVIGATION TABS
-========================== -->
-        <!-- ==========================
-     NAVIGATION TABS
-========================== -->
-        <div class="tabs">
-
-            <button class="tab-btn active" onclick="openTab('residents')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <path d="M3 10.5 12 3l9 7.5" />
-                    <path d="M5 9.5V21h14V9.5" />
-                    <path d="M9 21v-6h6v6" />
-                </svg>
-                <span>Residents</span>
-            </button>
 
 
-            <button class="tab-btn" data-finance-only onclick="openTab('finance')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <rect x="3" y="5" width="18" height="14" rx="2" />
-                    <path d="M3 10h18" />
-                    <path d="M7 15h3" />
-                </svg>
-                <span>Expenses & Finance</span>
-            </button>
+        <!-- =====================================================
+             NAVIGATION
+        ====================================================== -->
 
-            <button class="tab-btn" onclick="openTab('paidClients')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <circle cx="9" cy="8" r="3" />
-                    <path d="M3 21v-2a6 6 0 0 1 12 0v2" />
-                    <path d="M16 11a3 3 0 1 0 0-6" />
-                    <path d="M18 21v-2a5 5 0 0 0-3-4.6" />
-                </svg>
-                <span>Paid Clients</span>
-            </button>
+<div class="tabs">
 
-            <!-- ADMIN / OWNER ONLY -->
-            <button class="tab-btn" data-admin-only onclick="openTab('users')">
+    <button class="tab-btn active" onclick="openTab('residents')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5 12 3l9 7.5" />
+            <path d="M5 9.5V21h14V9.5" />
+            <path d="M9 21v-6h6v6" />
+        </svg>
+        <span>Residents</span>
+    </button>
 
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                    stroke-linejoin="round">
+    <button class="tab-btn" data-finance-only onclick="openTab('finance')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <path d="M3 10h18" />
+            <path d="M7 15h3" />
+        </svg>
+        <span>Expenses & Finance</span>
+    </button>
 
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    <button class="tab-btn" onclick="openTab('paidClients')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="8" r="3" />
+            <path d="M3 21v-2a6 6 0 0 1 12 0v2" />
+            <path d="M16 11a3 3 0 1 0 0-6" />
+            <path d="M18 21v-2a5 5 0 0 0-3-4.6" />
+        </svg>
+        <span>Paid Clients</span>
+    </button>
 
-                </svg>
+    <button class="tab-btn" data-admin-only onclick="openTab('users')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        <span>User Management</span>
+    </button>
 
-                <span>User Management</span>
-                <button class="tab-btn" data-requests-only onclick="openTab('requests')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <rect x="4" y="3" width="16" height="18" rx="2" />
-                        <path d="M8 8h8M8 12h8M8 16h5" />
-                        <path d="M7 3.5V2h10v1.5" />
-                    </svg>
-                    <span>Requests</span>
-                </button>
+    <button class="tab-btn" data-requests-only onclick="openTab('requests')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="2" />
+            <path d="M8 8h8" />
+            <path d="M8 12h8" />
+            <path d="M8 16h5" />
+            <path d="M7 3.5V2h10v1.5" />
+        </svg>
+        <span>Requests</span>
+    </button>
 
-            </button>
+</div>
 
-        </div>
-        <!-- ==========================
-     REQUESTS PAGE
-========================== -->
-        <div id="requestsPage" style="display:none;">
+        <!-- =====================================================
+             REQUESTS PAGE
+        ====================================================== -->
+
+        <div id="requestsPage">
+
+
             <div class="finance-container paid-enterprise-container requests-enterprise-container">
+
+
+                <!-- REQUEST HEADER -->
+
                 <div class="paid-header requests-header">
+
                     <div class="paid-title-group">
-                        <div class="status-indicator-dot requests-live-dot"></div>
-                        <div>
-                            <h2>Requests Center</h2>
-                            <p class="paid-subtitle">Foyer Nohad — centralized maintenance, resident and building
-                                service requests</p>
+
+                        <div class="status-indicator-dot requests-live-dot">
                         </div>
+
+                        <div>
+
+                            <h2>
+                                Requests Center
+                            </h2>
+
+                            <p class="paid-subtitle">
+                                Foyer Nohad — centralized maintenance,
+                                resident and building service requests
+                            </p>
+
+                        </div>
+
                     </div>
+
+
                     <div class="export-actions-group">
-                        <button class="btn-secondary-export" onclick="exportRequestsCSV()">
-                            <i class="fa-solid fa-file-csv"></i><span>Export CSV</span>
+
+
+                        <button type="button" class="btn-secondary-export" onclick="exportRequestsCSV()">
+
+                            <i class="fa-solid fa-file-csv"></i>
+
+                            <span>
+                                Export CSV
+                            </span>
+
                         </button>
-                        <button class="btn-primary-print" data-requests-write onclick="openRequestModal()">
-                            <i class="fa-solid fa-plus"></i><span>New Request</span>
+
+
+                        <button type="button" class="btn-primary-print" data-requests-write
+                            onclick="openRequestModal()">
+
+                            <i class="fa-solid fa-plus"></i>
+
+                            <span>
+                                New Request
+                            </span>
+
                         </button>
+
+
                     </div>
+
                 </div>
+
+
+
+                <!-- =================================================
+                     REQUEST KPI
+                ================================================== -->
 
                 <div class="requests-kpi-grid">
+
+
                     <div class="requests-kpi-card">
-                        <div class="requests-kpi-icon purple"><i class="fa-solid fa-layer-group"></i></div>
-                        <div><span>Total Requests</span><strong id="requestsTotal">0</strong></div>
+
+                        <div class="requests-kpi-icon purple">
+
+                            <i class="fa-solid fa-layer-group"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Total Requests
+                            </span>
+
+                            <strong id="requestsTotal">
+                                0
+                            </strong>
+
+                        </div>
+
                     </div>
+
+
+
                     <div class="requests-kpi-card">
-                        <div class="requests-kpi-icon amber"><i class="fa-regular fa-clock"></i></div>
-                        <div><span>Pending</span><strong id="requestsPending">0</strong></div>
+
+                        <div class="requests-kpi-icon amber">
+
+                            <i class="fa-regular fa-clock"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Pending
+                            </span>
+
+                            <strong id="requestsPending">
+                                0
+                            </strong>
+
+                        </div>
+
                     </div>
+
+
+
                     <div class="requests-kpi-card">
-                        <div class="requests-kpi-icon blue"><i class="fa-solid fa-spinner"></i></div>
-                        <div><span>In Progress</span><strong id="requestsProgress">0</strong></div>
+
+                        <div class="requests-kpi-icon blue">
+
+                            <i class="fa-solid fa-spinner"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                In Progress
+                            </span>
+
+                            <strong id="requestsProgress">
+                                0
+                            </strong>
+
+                        </div>
+
                     </div>
+
+
+
                     <div class="requests-kpi-card">
-                        <div class="requests-kpi-icon green"><i class="fa-solid fa-circle-check"></i></div>
-                        <div><span>Completed</span><strong id="requestsCompleted">0</strong></div>
+
+                        <div class="requests-kpi-icon green">
+
+                            <i class="fa-solid fa-circle-check"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Resolved
+                            </span>
+
+                            <strong id="requestsCompleted">
+                                0
+                            </strong>
+
+                        </div>
+
                     </div>
+
+
+
                     <div class="requests-kpi-card">
-                        <div class="requests-kpi-icon red"><i class="fa-solid fa-bolt"></i></div>
-                        <div><span>Urgent</span><strong id="requestsUrgent">0</strong></div>
+
+                        <div class="requests-kpi-icon red">
+
+                            <i class="fa-solid fa-bolt"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Urgent
+                            </span>
+
+                            <strong id="requestsUrgent">
+                                0
+                            </strong>
+
+                        </div>
+
                     </div>
+
+
+
                     <div class="requests-kpi-card">
-                        <div class="requests-kpi-icon orange"><i class="fa-solid fa-calendar-xmark"></i></div>
-                        <div><span>Overdue</span><strong id="requestsOverdue">0</strong></div>
+
+                        <div class="requests-kpi-icon orange">
+
+                            <i class="fa-solid fa-calendar-xmark"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Overdue
+                            </span>
+
+                            <strong id="requestsOverdue">
+                                0
+                            </strong>
+
+                        </div>
+
                     </div>
+
+
+
                     <div class="requests-kpi-card requests-rate-card">
-                        <div class="requests-kpi-icon teal"><i class="fa-solid fa-chart-line"></i></div>
-                        <div><span>Completion Rate</span><strong id="requestsRate">0%</strong></div>
+
+                        <div class="requests-kpi-icon teal">
+
+                            <i class="fa-solid fa-chart-line"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Completion Rate
+                            </span>
+
+                            <strong id="requestsRate">
+                                0%
+                            </strong>
+
+                        </div>
+
                     </div>
+
+
                 </div>
+
+
+
+                <!-- =================================================
+                     FILTERS
+                ================================================== -->
 
                 <div class="requests-filter-toolbar">
-                    <div class="requests-search"><i class="fa-solid fa-magnifying-glass"></i><input id="requestSearch"
-                            oninput="filterRequests()" placeholder="Search by request, title, resident or location...">
+
+
+                    <div class="requests-search">
+
+                        <i class="fa-solid fa-magnifying-glass"></i>
+
+                        <input id="requestSearch" type="text" oninput="filterRequests()"
+                            placeholder="Search by request, title, resident or location...">
+
                     </div>
+
+
+
                     <select id="requestStatusFilter" onchange="filterRequests()">
-                        <option value="all">All Statuses</option>
-                        <option value="pending">Pending</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="cancelled">Cancelled</option>
+
+                        <option value="all">
+                            All Statuses
+                        </option>
+
+                        <option value="pending">
+                            Pending
+                        </option>
+
+                        <option value="in_progress">
+                            In Progress
+                        </option>
+
+                        <option value="resolved">
+                            Resolved
+                        </option>
+
+                        <option value="completed">
+                            Completed
+                        </option>
+
+                        <option value="rejected">
+                            Rejected
+                        </option>
+
+                        <option value="cancelled">
+                            Cancelled
+                        </option>
+
                     </select>
+
+
+
                     <select id="requestPriorityFilter" onchange="filterRequests()">
-                        <option value="all">All Priorities</option>
-                        <option value="urgent">Urgent</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
+
+                        <option value="all">
+                            All Priorities
+                        </option>
+
+                        <option value="urgent">
+                            Urgent
+                        </option>
+
+                        <option value="high">
+                            High
+                        </option>
+
+                        <option value="medium">
+                            Medium
+                        </option>
+
+                        <option value="low">
+                            Low
+                        </option>
+
                     </select>
+
+
+
                     <select id="requestTypeFilter" onchange="filterRequests()">
-                        <option value="all">All Types</option>
-                        <option value="Maintenance">Maintenance</option>
-                        <option value="Cleaning">Cleaning</option>
-                        <option value="Electrical">Electrical</option>
-                        <option value="Plumbing">Plumbing</option>
-                        <option value="Payment">Payment</option>
-                        <option value="Resident Issue">Resident Issue</option>
-                        <option value="General">General</option>
+
+                        <option value="all">
+                            All Types
+                        </option>
+
+                        <option value="Maintenance">
+                            Maintenance
+                        </option>
+
+                        <option value="Cleaning">
+                            Cleaning
+                        </option>
+
+                        <option value="Electrical">
+                            Electrical
+                        </option>
+
+                        <option value="Plumbing">
+                            Plumbing
+                        </option>
+
+                        <option value="Payment">
+                            Payment
+                        </option>
+
+                        <option value="Resident Issue">
+                            Resident Issue
+                        </option>
+
+                        <option value="General">
+                            General
+                        </option>
+
                     </select>
-                    <button class="request-reset-btn" onclick="resetRequestFilters()" title="Reset filters"><i
-                            class="fa-solid fa-rotate-left"></i></button>
+
+
+
+                    <button type="button" class="request-reset-btn" onclick="resetRequestFilters()"
+                        title="Reset filters">
+
+                        <i class="fa-solid fa-rotate-left"></i>
+
+                    </button>
+
+
                 </div>
+
+
+
+                <!-- =================================================
+                     REQUEST TABLE
+                ================================================== -->
 
                 <div class="paid-table-card requests-table-card">
+
+
                     <div class="requests-table-heading">
+
                         <div>
-                            <h3>Request Register</h3><span>Live operational queue for Foyer Nohad</span>
-                        </div><span class="requests-secure-label"><i class="fa-solid fa-shield-halved"></i> Company
-                            secured</span>
+
+                            <h3>
+                                Request Register
+                            </h3>
+
+                            <span>
+                                Live operational queue for Foyer Nohad
+                            </span>
+
+                        </div>
+
+
+                        <span class="requests-secure-label">
+
+                            <i class="fa-solid fa-shield-halved"></i>
+
+                            Company secured
+
+                        </span>
+
                     </div>
+
+
+
                     <div class="requests-table-scroll">
+
                         <table class="paid-table requests-table">
+
+
                             <thead>
+
                                 <tr>
-                                    <th>Request</th>
-                                    <th>Details</th>
-                                    <th>Location</th>
-                                    <th>Priority</th>
-                                    <th>Status</th>
-                                    <th>Requested By</th>
-                                    <th>Due</th>
-                                    <th>Updated</th>
-                                    <th>Actions</th>
+
+                                    <th>
+                                        Request
+                                    </th>
+
+                                    <th>
+                                        Details
+                                    </th>
+
+                                    <th>
+                                        Location
+                                    </th>
+
+                                    <th>
+                                        Priority
+                                    </th>
+
+                                    <th>
+                                        Status
+                                    </th>
+
+                                    <th>
+                                        Requested By
+                                    </th>
+
+                                    <th>
+                                        Due
+                                    </th>
+
+                                    <th>
+                                        Updated
+                                    </th>
+
+                                    <th>
+                                        Actions
+                                    </th>
+
                                 </tr>
+
                             </thead>
-                            <tbody id="requestsTableBody"></tbody>
+
+
+                            <tbody id="requestsTableBody">
+
+                            </tbody>
+
+
                         </table>
+
                     </div>
+
                 </div>
+
+
             </div>
+
         </div>
 
-        <!-- REQUEST CREATE / EDIT MODAL -->
+
+
+        <!-- =====================================================
+             REQUEST CREATE / EDIT MODAL
+        ====================================================== -->
+
         <div id="requestModal" class="modal" style="display:none;">
+
+
             <div class="modal-content request-modal-content">
-                <div class="request-modal-header">
-                    <div><span class="request-modal-eyebrow">FOYER NOHAD</span>
-                      <div class="request-title-row">
-    <div class="request-title-icon">
-        <i class="fa-solid fa-clipboard-list"></i>
-    </div>
 
-    <div>
-        <span class="request-modal-eyebrow">FOYER NOHAD · OPERATIONS</span>
-        <h2 id="requestModalTitle">Create New Request</h2>
-        <p>Record and track a building service request.</p>
-    </div>
-</div>
-                        <p>Record and track a building service request.</p>
-                    </div><button class="request-close" onclick="closeRequestModal()">&times;</button>
+
+                <!-- MODAL HEADER -->
+
+                <div class="request-modal-header">
+
+
+                    <div class="request-title-row">
+
+
+                        <div class="request-title-icon">
+
+                            <i class="fa-solid fa-clipboard-list"></i>
+
+                        </div>
+
+
+                        <div>
+
+                            <span class="request-modal-eyebrow">
+                                FOYER NOHAD · OPERATIONS
+                            </span>
+
+                            <h2 id="requestModalTitle">
+                                Create New Request
+                            </h2>
+
+                            <p>
+                                Submit and track a building service request.
+                            </p>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <button type="button" class="request-close" onclick="closeRequestModal()" aria-label="Close">
+
+                        &times;
+
+                    </button>
+
+
                 </div>
+
+
+
+                <!-- =================================================
+                     REQUEST FORM
+                ================================================== -->
+
                 <div class="request-form-grid">
-                    <div class="input-group request-full"><label>Request Title *</label><input id="requestTitle"
-                            placeholder="e.g. Water leak in bathroom"></div>
-                    <div class="input-group"><label>Request Type</label><select id="requestType">
-                            <option>Maintenance</option>
-                            <option>Cleaning</option>
-                            <option>Electrical</option>
-                            <option>Plumbing</option>
-                            <option>Payment</option>
-                            <option>Resident Issue</option>
-                            <option>General</option>
-                        </select></div>
-                    <div class="input-group"><label>Priority</label><select id="requestPriority">
-                            <option value="low">Low</option>
-                            <option value="medium" selected>Medium</option>
-                            <option value="high">High</option>
-                            <option value="urgent">Urgent</option>
-                        </select></div>
-                    <div class="input-group"><label>Status</label><select id="requestStatus">
-                            <option value="pending">Pending</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="completed">Completed</option>
-                            <option value="rejected">Rejected</option>
-                            <option value="cancelled">Cancelled</option>
-                        </select></div>
-                    <div class="input-group"><label>Requested By</label><input id="requestRequestedBy"
-                            placeholder="Resident / staff name"></div>
-                    <div class="input-group"><label>Floor</label><input id="requestFloor" placeholder="1 - 6"></div>
-                    <div class="input-group"><label>Apartment</label><input id="requestApartment" placeholder="1 - 4">
+
+
+                    <!-- TITLE -->
+
+                    <div class="input-group request-full">
+
+                        <label for="requestTitle">
+                            Request Title *
+                        </label>
+
+                        <input id="requestTitle" type="text" maxlength="200" placeholder="e.g. Water leak in bathroom">
+
                     </div>
-                    <div class="input-group"><label>Room</label><input id="requestRoom" placeholder="1 - 3"></div>
-                    <div class="input-group"><label>Due Date</label><input id="requestDueDate" type="date"></div>
-                    <div class="input-group request-full"><label>Description *</label><textarea id="requestDescription"
-                            rows="5"
+
+
+
+                    <!-- TYPE -->
+
+                    <div class="input-group">
+
+                        <label for="requestType">
+                            Request Type
+                        </label>
+
+                        <select id="requestType">
+
+                            <option value="Maintenance">
+                                Maintenance
+                            </option>
+
+                            <option value="Cleaning">
+                                Cleaning
+                            </option>
+
+                            <option value="Electrical">
+                                Electrical
+                            </option>
+
+                            <option value="Plumbing">
+                                Plumbing
+                            </option>
+
+                            <option value="Payment">
+                                Payment
+                            </option>
+
+                            <option value="Resident Issue">
+                                Resident Issue
+                            </option>
+
+                            <option value="General">
+                                General
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+
+                    <!-- PRIORITY -->
+
+                    <div class="input-group">
+
+                        <label for="requestPriority">
+                            Priority
+                        </label>
+
+                        <select id="requestPriority">
+
+                            <option value="low">
+                                Low
+                            </option>
+
+                            <option value="medium" selected>
+                                Medium
+                            </option>
+
+                            <option value="high">
+                                High
+                            </option>
+
+                            <option value="urgent">
+                                Urgent
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+
+                    <!-- STATUS -->
+
+                    <div class="input-group">
+
+                        <label for="requestStatus">
+                            Status
+                        </label>
+
+                        <select id="requestStatus">
+
+                            <option value="pending">
+                                Pending
+                            </option>
+
+                            <option value="in_progress">
+                                In Progress
+                            </option>
+
+                            <option value="resolved">
+                                Resolved
+                            </option>
+
+                            <option value="completed">
+                                Completed
+                            </option>
+
+                            <option value="rejected">
+                                Rejected
+                            </option>
+
+                            <option value="cancelled">
+                                Cancelled
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+
+                    <!-- REQUESTED BY -->
+
+                    <div class="input-group">
+
+                        <label for="requestRequestedBy">
+                            Requested By
+                        </label>
+
+                        <input id="requestRequestedBy" type="text" maxlength="120" placeholder="Resident / staff name">
+
+                    </div>
+
+
+
+                    <!-- FLOOR -->
+
+                    <div class="input-group">
+
+                        <label for="requestFloor">
+                            Floor
+                        </label>
+
+                        <input id="requestFloor" type="text" inputmode="numeric" placeholder="1 - 6">
+
+                    </div>
+
+
+
+                    <!-- APARTMENT -->
+
+                    <div class="input-group">
+
+                        <label for="requestApartment">
+                            Apartment
+                        </label>
+
+                        <input id="requestApartment" type="text" inputmode="numeric" placeholder="1 - 4">
+
+                    </div>
+
+
+
+                    <!-- ROOM -->
+
+                    <div class="input-group">
+
+                        <label for="requestRoom">
+                            Room
+                        </label>
+
+                        <input id="requestRoom" type="text" inputmode="numeric" placeholder="1 - 3">
+
+                    </div>
+
+
+
+                    <!-- DUE DATE -->
+
+                    <div class="input-group">
+
+                        <label for="requestDueDate">
+                            Due Date
+                        </label>
+
+                        <input id="requestDueDate" type="date">
+
+                    </div>
+
+
+
+                    <!-- DESCRIPTION -->
+
+                    <div class="input-group request-full">
+
+                        <label for="requestDescription">
+                            Description *
+                        </label>
+
+                        <textarea id="requestDescription" rows="5" maxlength="3000"
                             placeholder="Describe the issue, required action and any useful details..."></textarea>
+
                     </div>
+
+
                 </div>
-                <div class="request-modal-footer"><button class="btn-secondary-export"
-                        onclick="closeRequestModal()">Cancel</button><button class="btn-primary-print"
-                        onclick="saveRequest()"><i class="fa-solid fa-check"></i><span id="requestSubmitLabel">Create
-                            Request</span></button></div>
+
+
+
+                <!-- =================================================
+                     MODAL FOOTER
+                ================================================== -->
+
+                <div class="request-modal-footer">
+
+
+                    <button type="button" class="btn-secondary-export" onclick="closeRequestModal()">
+
+                        <i class="fa-solid fa-xmark"></i>
+
+                        <span>
+                            Cancel
+                        </span>
+
+                    </button>
+
+
+                    <button type="button" class="btn-primary-print" onclick="saveRequest()">
+
+                        <i class="fa-solid fa-paper-plane"></i>
+
+                        <span id="requestSubmitLabel">
+                            Submit the Request
+                        </span>
+
+                    </button>
+
+
+                </div>
+
+
             </div>
+
         </div>
 
-        <!-- REQUEST DETAILS MODAL -->
+
+
+        <!-- =====================================================
+             REQUEST DETAILS MODAL
+        ====================================================== -->
+
         <div id="requestDetailsModal" class="modal" style="display:none;">
+
+
             <div class="modal-content request-details-modal">
+
+
                 <div class="request-modal-header">
-                    <div><span class="request-modal-eyebrow" id="requestDetailsNo">REQ</span>
-                        <h2 id="requestDetailsTitle">Request Details</h2>
-                    </div><button class="request-close" onclick="closeRequestDetails()">&times;</button>
+
+
+                    <div>
+
+                        <span class="request-modal-eyebrow" id="requestDetailsNo">
+
+                            REQ
+
+                        </span>
+
+                        <h2 id="requestDetailsTitle">
+                            Request Details
+                        </h2>
+
+                    </div>
+
+
+                    <button type="button" class="request-close" onclick="closeRequestDetails()">
+
+                        &times;
+
+                    </button>
+
+
                 </div>
+
+
                 <div id="requestDetailsBody"></div>
+
+
             </div>
+
         </div>
 
-        <style>
-            .requests-enterprise-container {
-                padding-bottom: 28px
-            }
 
-            .requests-header {
-                margin-bottom: 20px
-            }
 
-            .requests-live-dot {
-                background: #10b981;
-                box-shadow: 0 0 0 5px rgba(16, 185, 129, .12), 0 0 16px rgba(16, 185, 129, .45)
-            }
-
-            .requests-kpi-grid {
-                display: grid;
-                grid-template-columns: repeat(7, minmax(130px, 1fr));
-                gap: 12px;
-                margin-bottom: 18px
-            }
-
-            .requests-kpi-card {
-                background: linear-gradient(145deg, #fff, #f8fafc);
-                border: 1px solid #e7edf5;
-                border-radius: 16px;
-                padding: 16px;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                min-height: 84px;
-                box-shadow: 0 8px 22px rgba(15, 23, 42, .04)
-            }
-
-            .requests-kpi-card span {
-                display: block;
-                color: #64748b;
-                font-size: 11px;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: .04em
-            }
-
-            .requests-kpi-card strong {
-                display: block;
-                color: #0f172a;
-                font-size: 24px;
-                line-height: 1.15;
-                margin-top: 5px
-            }
-
-            .requests-kpi-icon {
-                width: 40px;
-                height: 40px;
-                border-radius: 12px;
-                display: grid;
-                place-items: center;
-                font-size: 16px
-            }
-
-            .requests-kpi-icon.purple {
-                background: #f3e8ff;
-                color: #7c3aed
-            }
-
-            .requests-kpi-icon.amber {
-                background: #fef3c7;
-                color: #d97706
-            }
-
-            .requests-kpi-icon.blue {
-                background: #dbeafe;
-                color: #2563eb
-            }
-
-            .requests-kpi-icon.green {
-                background: #dcfce7;
-                color: #16a34a
-            }
-
-            .requests-kpi-icon.red {
-                background: #fee2e2;
-                color: #dc2626
-            }
-
-            .requests-kpi-icon.orange {
-                background: #ffedd5;
-                color: #ea580c
-            }
-
-            .requests-kpi-icon.teal {
-                background: #ccfbf1;
-                color: #0f766e
-            }
-
-            .requests-filter-toolbar {
-                display: grid;
-                grid-template-columns: minmax(240px, 1fr) 170px 170px 170px 44px;
-                gap: 10px;
-                background: #fff;
-                border: 1px solid #e7edf5;
-                border-radius: 16px;
-                padding: 12px;
-                margin-bottom: 16px;
-                box-shadow: 0 8px 22px rgba(15, 23, 42, .04)
-            }
-
-            .requests-search {
-                height: 42px;
-                border: 1px solid #e2e8f0;
-                border-radius: 11px;
-                display: flex;
-                align-items: center;
-                gap: 9px;
-                padding: 0 12px;
-                color: #94a3b8
-            }
-
-            .requests-search input {
-                border: 0;
-                outline: 0;
-                width: 100%;
-                font: inherit;
-                color: #0f172a;
-                background: transparent
-            }
-
-            .requests-filter-toolbar select {
-                border: 1px solid #e2e8f0;
-                border-radius: 11px;
-                background: #fff;
-                padding: 0 11px;
-                color: #334155;
-                outline: 0
-            }
-
-            .request-reset-btn {
-                border: 1px solid #e2e8f0;
-                background: #fff;
-                border-radius: 11px;
-                color: #64748b;
-                cursor: pointer
-            }
-
-            .request-reset-btn:hover {
-                background: #f8fafc;
-                color: #0f172a
-            }
-
-            .requests-table-card {
-                overflow: hidden
-            }
-
-            .requests-table-heading {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                padding: 18px 20px;
-                border-bottom: 1px solid #edf2f7
-            }
-
-            .requests-table-heading h3 {
-                margin: 0;
-                color: #0f172a;
-                font-size: 16px
-            }
-
-            .requests-table-heading span {
-                font-size: 12px;
-                color: #94a3b8
-            }
-
-            .requests-secure-label {
-                color: #047857 !important;
-                background: #ecfdf5;
-                border: 1px solid #a7f3d0;
-                padding: 7px 10px;
-                border-radius: 999px;
-                font-weight: 700
-            }
-
-            .requests-table-scroll {
-                overflow: auto
-            }
-
-            .requests-table {
-                min-width: 1180px
-            }
-
-            .requests-table td,
-            .requests-table th {
-                vertical-align: middle
-            }
-
-            .request-row-sub {
-                display: block;
-                font-size: 10px;
-                color: #94a3b8;
-                margin-top: 3px
-            }
-
-            .request-title-cell span {
-                display: block;
-                color: #64748b;
-                font-size: 11px;
-                margin-top: 3px
-            }
-
-            .request-badge {
-                display: inline-flex;
-                align-items: center;
-                border-radius: 999px;
-                padding: 5px 9px;
-                font-size: 10px;
-                font-weight: 800;
-                white-space: nowrap
-            }
-
-            .priority-low {
-                background: #f1f5f9;
-                color: #475569
-            }
-
-            .priority-medium {
-                background: #dbeafe;
-                color: #1d4ed8
-            }
-
-            .priority-high {
-                background: #ffedd5;
-                color: #c2410c
-            }
-
-            .priority-urgent {
-                background: #fee2e2;
-                color: #b91c1c
-            }
-
-            .status-pending {
-                background: #fef3c7;
-                color: #a16207
-            }
-
-            .status-in-progress {
-                background: #dbeafe;
-                color: #1d4ed8
-            }
-
-            .status-completed {
-                background: #dcfce7;
-                color: #15803d
-            }
-
-            .status-rejected,
-            .status-cancelled {
-                background: #f1f5f9;
-                color: #475569
-            }
-
-            .request-overdue {
-                color: #dc2626;
-                font-weight: 700
-            }
-
-            .request-overdue small {
-                display: block;
-                font-size: 9px
-            }
-
-            .request-actions {
-                display: flex;
-                gap: 5px;
-                justify-content: flex-end
-            }
-
-            .request-action-btn {
-                width: 31px;
-                height: 31px;
-                border-radius: 9px;
-                border: 1px solid #e2e8f0;
-                background: #fff;
-                color: #64748b;
-                cursor: pointer
-            }
-
-            .request-action-btn:hover {
-                background: #f8fafc;
-                color: #0f172a
-            }
-
-            .request-action-btn.danger:hover {
-                color: #dc2626;
-                background: #fef2f2
-            }
-
-            .requests-empty {
-                text-align: center;
-                padding: 50px 20px;
-                color: #64748b
-            }
-
-            .requests-empty-icon {
-                width: 58px;
-                height: 58px;
-                border-radius: 18px;
-                background: #f1f5f9;
-                display: grid;
-                place-items: center;
-                margin: 0 auto 12px;
-                color: #64748b;
-                font-size: 22px
-            }
-
-            .requests-empty h3 {
-                margin: 0 0 6px;
-                color: #0f172a
-            }
-
-            .requests-empty p {
-                margin: 0;
-                font-size: 13px
-            }
-
-            .request-modal-content {
-                max-width: 850px;
-                width: calc(100% - 30px);
-                padding: 0;
-                overflow: hidden
-            }
-
-            .request-details-modal {
-                max-width: 820px;
-                width: calc(100% - 30px);
-                padding: 0;
-                overflow: hidden
-            }
-
-            .request-modal-header {
-                padding: 22px 24px;
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                border-bottom: 1px solid #e5e7eb;
-                background: linear-gradient(135deg, #f8fafc, #fff)
-            }
-
-            .request-modal-eyebrow {
-                font-size: 10px;
-                letter-spacing: .12em;
-                color: #7c3aed;
-                font-weight: 900
-            }
-
-            .request-modal-header h2 {
-                margin: 4px 0 4px;
-                color: #0f172a
-            }
-
-            .request-modal-header p {
-                margin: 0;
-                color: #64748b;
-                font-size: 12px
-            }
-
-            .request-close {
-                border: 0;
-                background: #f1f5f9;
-                width: 34px;
-                height: 34px;
-                border-radius: 10px;
-                font-size: 24px;
-                color: #64748b;
-                cursor: pointer
-            }
-
-            .request-form-grid {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 14px;
-                padding: 22px 24px
-            }
-
-            .request-full {
-                grid-column: 1/-1
-            }
-
-            .request-form-grid input,
-            .request-form-grid select,
-            .request-form-grid textarea {
-                width: 100%;
-                box-sizing: border-box;
-                border: 1px solid #dbe3ee;
-                border-radius: 10px;
-                padding: 10px 11px;
-                background: #fff;
-                outline: 0;
-                font: inherit
-            }
-
-            .request-form-grid textarea {
-                resize: vertical
-            }
-
-            .request-modal-footer {
-                display: flex;
-                justify-content: flex-end;
-                gap: 10px;
-                padding: 16px 24px;
-                border-top: 1px solid #edf2f7;
-                background: #fbfdff
-            }
-
-            .request-detail-grid {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 12px;
-                padding: 22px 24px
-            }
-
-            .request-detail-grid>div {
-                background: #f8fafc;
-                border: 1px solid #e7edf5;
-                border-radius: 12px;
-                padding: 12px
-            }
-
-            .request-detail-grid span:first-child {
-                display: block;
-                color: #94a3b8;
-                font-size: 10px;
-                text-transform: uppercase;
-                font-weight: 800;
-                margin-bottom: 5px
-            }
-
-            .request-detail-grid strong {
-                color: #0f172a;
-                font-size: 12px
-            }
-
-            .request-description-box,
-            .request-timeline {
-                margin: 0 24px 20px;
-                padding: 16px;
-                border: 1px solid #e7edf5;
-                border-radius: 14px;
-                background: #fff
-            }
-
-            .request-description-box h4,
-            .request-timeline h4 {
-                margin: 0 0 10px;
-                color: #0f172a
-            }
-
-            .request-description-box p {
-                margin: 0;
-                color: #475569;
-                line-height: 1.7;
-                white-space: pre-wrap
-            }
-
-            .request-timeline-item {
-                display: flex;
-                gap: 11px;
-                padding: 10px 0;
-                border-top: 1px solid #f1f5f9
-            }
-
-            .request-timeline-item:first-of-type {
-                border-top: 0
-            }
-
-            .timeline-dot {
-                width: 9px;
-                height: 9px;
-                border-radius: 50%;
-                background: #7c3aed;
-                margin-top: 5px;
-                flex: 0 0 auto
-            }
-
-            .request-timeline-item strong {
-                display: block;
-                color: #334155;
-                font-size: 12px
-            }
-
-            .request-timeline-item span {
-                display: block;
-                color: #94a3b8;
-                font-size: 10px;
-                margin-top: 3px
-            }
-
-            .muted {
-                color: #94a3b8
-            }
-
-            @media(max-width:1200px) {
-                .requests-kpi-grid {
-                    grid-template-columns: repeat(4, 1fr)
-                }
-
-                .requests-filter-toolbar {
-                    grid-template-columns: 1fr 1fr 1fr 1fr 44px
-                }
-            }
-
-            @media(max-width:760px) {
-                .requests-kpi-grid {
-                    grid-template-columns: repeat(2, 1fr)
-                }
-
-                .requests-filter-toolbar {
-                    grid-template-columns: 1fr 1fr
-                }
-
-                .requests-search {
-                    grid-column: 1/-1
-                }
-
-                .request-form-grid,
-                .request-detail-grid {
-                    grid-template-columns: 1fr
-                }
-
-                .request-full {
-                    grid-column: auto
-                }
-
-                .request-modal-content,
-                .request-details-modal {
-                    width: calc(100% - 16px)
-                }
-
-                .requests-table-heading {
-                    align-items: flex-start;
-                    gap: 10px;
-                    flex-direction: column
-                }
-            }
-        </style>
+        <!-- =====================================================
+             USER MANAGEMENT PAGE
+        ====================================================== -->
 
         <div id="usersPage" style="display:none;">
 
+
             <div class="finance-container paid-enterprise-container">
 
+
                 <div class="paid-header">
+
 
                     <div class="paid-title-group">
 
                         <div class="status-indicator-dot"></div>
 
                         <div>
-                            <h2>User Management</h2>
+
+                            <h2>
+                                User Management
+                            </h2>
 
                             <p class="paid-subtitle">
                                 Manage users, roles and individual permissions
                             </p>
+
                         </div>
 
                     </div>
+
 
                     <div class="export-actions-group">
 
                         <button class="btn-primary-print" onclick="openUserModal()">
 
-                            <span>Add User</span>
+                            <span>
+                                Add User
+                            </span>
 
                         </button>
 
                     </div>
 
+
                 </div>
+
 
 
                 <div class="paid-table-card">
 
                     <table class="paid-table">
 
+
                         <thead>
 
                             <tr>
-                                <th>User</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th>Permissions</th>
-                                <th>Actions</th>
+
+                                <th>
+                                    User
+                                </th>
+
+                                <th>
+                                    Email
+                                </th>
+
+                                <th>
+                                    Role
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
+                                <th>
+                                    Permissions
+                                </th>
+
+                                <th>
+                                    Actions
+                                </th>
+
                             </tr>
 
                         </thead>
 
+
                         <tbody id="usersTableBody"></tbody>
+
 
                     </table>
 
                 </div>
 
 
-                <div id="usersEmptyState" style="display:none;padding:40px;text-align:center;color:#94a3b8;">
+                <div id="usersEmptyState" style="
+                        display:none;
+                        padding:40px;
+                        text-align:center;
+                        color:#94a3b8;
+                    ">
 
                     No users found.
 
                 </div>
 
+
             </div>
 
         </div>
-        <!-- Dashboard / Residents Page -->
+
+
+
+        <!-- =====================================================
+             RESIDENTS PAGE
+        ====================================================== -->
+
         <div id="residentsPage">
+
+
             <section class="dashboard">
+
+
                 <div class="card" onclick="showKpi('occupied')">
-                    <h3>Occupied</h3>
-                    <span id="occupiedBeds">0</span>
+
+                    <h3>
+                        Occupied
+                    </h3>
+
+                    <span id="occupiedBeds">
+                        0
+                    </span>
+
                 </div>
+
+
                 <div class="card" onclick="showKpi('available')">
-                    <h3>Available</h3>
-                    <span id="availableBeds">0</span>
+
+                    <h3>
+                        Available
+                    </h3>
+
+                    <span id="availableBeds">
+                        0
+                    </span>
+
                 </div>
+
+
                 <div class="card" onclick="showKpi('paid')">
-                    <h3>Paid</h3>
-                    <span id="paidCustomers">0</span>
+
+                    <h3>
+                        Paid
+                    </h3>
+
+                    <span id="paidCustomers">
+                        0
+                    </span>
+
                 </div>
+
+
                 <div class="card" onclick="showKpi('unpaid')">
-                    <h3>Unpaid</h3>
-                    <span id="unpaidCustomers">0</span>
+
+                    <h3>
+                        Unpaid
+                    </h3>
+
+                    <span id="unpaidCustomers">
+                        0
+                    </span>
+
                 </div>
+
+
                 <div class="card" id="revenueCard" data-revenue-only>
-                    <h3>Revenue</h3>
-                    <h2 id="revenue">$0</h2>
+
+                    <h3>
+                        Revenue
+                    </h3>
+
+                    <h2 id="revenue">
+                        $0
+                    </h2>
+
                 </div>
+
+
             </section>
+
+
 
             <section class="top-bar">
+
+
                 <div class="search-box">
+
                     <input id="searchInput" type="text"
                         placeholder="Search by customer, floor, apartment, room or bed...">
+
                 </div>
+
+
                 <button class="history-btn" data-payment-history-only onclick="showHistory()">
+
                     📄 Payment History
+
                 </button>
+
+
             </section>
 
+
             <main id="building"></main>
+
+
         </div>
 
-        <!-- ==========================================
-             ENTERPRISE EXPENSES & FINANCE PAGE
-        ========================================== -->
+
+
+        <!-- =====================================================
+             FINANCE PAGE
+        ====================================================== -->
+
         <div id="financePage" style="display:none;">
+
+
             <div class="finance-container paid-enterprise-container">
 
-                <!-- Header Section -->
+
                 <div class="paid-header">
+
+
                     <div class="paid-title-group">
+
                         <div class="status-indicator-dot"></div>
+
                         <div>
-                            <h2 style="color:white">Financial Management & Expenses</h2>
-                            <p class="paid-subtitle">Track building operational expenditures, cash flow, and net balance
+
+                            <h2 style="color:white">
+                                Financial Management & Expenses
+                            </h2>
+
+                            <p class="paid-subtitle">
+                                Track building operational expenditures,
+                                cash flow, and net balance
                             </p>
+
                         </div>
+
                     </div>
+
 
                     <div class="export-actions-group">
-                        <button class="btn-primary-print" id="addExpenseBtn" data-expense-write-only>
+
+
+                        <button class="btn-primary-print" id="addExpenseBtn" data-expense-write-only">
+
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
+
                                 <line x1="12" y1="5" x2="12" y2="19" />
+
                                 <line x1="5" y1="12" x2="19" y2="12" />
+
                             </svg>
-                            <span>Add New Expense</span>
+
+                            <span>
+                                Add New Expense
+                            </span>
+
                         </button>
+
+
                     </div>
+
                 </div>
 
-                <!-- KPI Summary Cards -->
+
+
                 <div class="paid-kpi-grid">
+
+
                     <div class="paid-kpi-card" id="financeRevenueCard" data-revenue-only>
+
+
                         <div class="kpi-icon-wrapper emerald-bg">
+
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
+
                                 <polyline points="3 17 9 11 13 15 21 7" />
+
                                 <polyline points="14 7 21 7 21 14" />
+
                             </svg>
+
                         </div>
+
+
                         <div class="kpi-details">
-                            <span class="kpi-label">Total Revenue</span>
-                            <h1 id="financeRevenue" class="kpi-value text-emerald">$0</h1>
+
+                            <span class="kpi-label">
+                                Total Revenue
+                            </span>
+
+                            <h1 id="financeRevenue" class="kpi-value text-emerald">
+
+                                $0
+
+                            </h1>
+
                         </div>
+
+
                     </div>
 
+
+
                     <div class="paid-kpi-card">
+
+
                         <div class="kpi-icon-wrapper red-bg">
+
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
+
                                 <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z" />
+
                                 <path d="M9 8h6" />
                                 <path d="M9 12h6" />
                                 <path d="M9 16h3" />
+
                             </svg>
+
                         </div>
+
+
                         <div class="kpi-details">
-                            <span class="kpi-label">Total Expenses</span>
-                            <h1 id="financeExpenses" class="kpi-value text-danger">$0</h1>
+
+                            <span class="kpi-label">
+                                Total Expenses
+                            </span>
+
+                            <h1 id="financeExpenses" class="kpi-value text-danger">
+
+                                $0
+
+                            </h1>
+
                         </div>
+
+
                     </div>
+
+
 
                     <div class="paid-kpi-card" id="financeProfitCard" data-revenue-only>
 
+
                         <div class="kpi-icon-wrapper blue-bg">
+
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
+
                                 <path d="M20 7H5a3 3 0 0 1 0-6h13a2 2 0 0 1 2 2v16a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V4" />
+
                                 <path d="M20 12h-4a2 2 0 0 0 0 4h4" />
+
                             </svg>
+
                         </div>
+
 
                         <div class="kpi-details">
-                            <span class="kpi-label">Net Profit / Balance</span>
-                            <h1 id="financeProfit" class="kpi-value">$0</h1>
+
+                            <span class="kpi-label">
+                                Net Profit / Balance
+                            </span>
+
+                            <h1 id="financeProfit" class="kpi-value">
+
+                                $0
+
+                            </h1>
+
                         </div>
 
+
                     </div>
+
+
                 </div>
 
-                <!-- Filters & Search Toolbar -->
+
+
                 <div class="paid-filter-toolbar">
+
+
                     <div class="paid-search-input-wrapper">
-                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+
+                        <i class="fa-solid fa-magnifying-glass search-icon">
+                        </i>
+
                         <input id="expenseSearchInput" type="text"
                             placeholder="Search expenses by description or category..." oninput="filterExpenses()">
+
                     </div>
+
 
                     <div class="floor-filter-select-wrapper">
+
                         <select id="expenseCategoryFilter" onchange="filterExpenses()">
-                            <option value="all">All Categories</option>
-                            <option value="Maintenance">Maintenance</option>
-                            <option value="Utilities">Utilities (Electricity/Water)</option>
-                            <option value="Salaries">Staff Salaries</option>
-                            <option value="Cleaning">Cleaning & Supplies</option>
-                            <option value="Other">Other Expenses</option>
+
+                            <option value="all">
+                                All Categories
+                            </option>
+
+                            <option value="Maintenance">
+                                Maintenance
+                            </option>
+
+                            <option value="Utilities">
+                                Utilities (Electricity/Water)
+                            </option>
+
+                            <option value="Salaries">
+                                Staff Salaries
+                            </option>
+
+                            <option value="Cleaning">
+                                Cleaning & Supplies
+                            </option>
+
+                            <option value="Other">
+                                Other Expenses
+                            </option>
+
                         </select>
+
                     </div>
+
+
                 </div>
 
-                <!-- Expenses Data Table -->
+
+
                 <div class="paid-table-card">
+
+
                     <table class="paid-table">
+
+
                         <thead>
+
                             <tr>
-                                <th>Date</th>
-                                <th>Category</th>
-                                <th>Description</th>
-                                <th>Amount</th>
-                                <th style="text-align: right;">Action</th>
+
+                                <th>
+                                    Date
+                                </th>
+
+                                <th>
+                                    Category
+                                </th>
+
+                                <th>
+                                    Description
+                                </th>
+
+                                <th>
+                                    Amount
+                                </th>
+
+                                <th style="text-align:right;">
+                                    Action
+                                </th>
+
                             </tr>
+
                         </thead>
-                        <tbody id="expenseTableBody">
-                            <!-- Expense items loaded dynamically via JS -->
-                        </tbody>
+
+
+                        <tbody id="expenseTableBody"></tbody>
+
+
                     </table>
+
+
                 </div>
+
 
             </div>
+
         </div>
 
-        <!-- Paid Clients Page -->
+
+
+        <!-- =====================================================
+             PAID CLIENTS
+        ====================================================== -->
+
         <div id="paidClientsPage" style="display:none;">
+
+
             <div class="finance-container paid-enterprise-container">
+
+
                 <div class="paid-header">
+
+
                     <div class="paid-title-group">
+
                         <div class="status-indicator-dot"></div>
+
                         <div>
-                            <h2>Paid Clients Directory</h2>
-                            <p class="paid-subtitle">Real-time overview of active tenants with verified monthly
-                                settlements</p>
+
+                            <h2>
+                                Paid Clients Directory
+                            </h2>
+
+                            <p class="paid-subtitle">
+                                Real-time overview of active tenants
+                                with verified monthly settlements
+                            </p>
+
                         </div>
+
                     </div>
+
 
                     <div class="export-actions-group">
+
+
                         <button class="btn-secondary-export" onclick="exportPaidToCSV()">
+
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
+
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+
                                 <polyline points="7 10 12 15 17 10" />
+
                                 <line x1="12" y1="15" x2="12" y2="3" />
+
                             </svg>
-                            <span>Export CSV</span>
+
+                            <span>
+                                Export CSV
+                            </span>
+
                         </button>
+
+
                         <button class="btn-primary-print" onclick="window.print()">
+
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
+
                                 <polyline points="6 9 6 2 18 2 18 9" />
+
                                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+
                                 <rect x="6" y="14" width="12" height="8" />
+
                             </svg>
-                            <span>Print Report</span>
+
+                            <span>
+                                Print Report
+                            </span>
+
                         </button>
+
+
                     </div>
+
                 </div>
 
+
+
                 <div class="paid-kpi-grid">
+
+
                     <div class="paid-kpi-card">
+
+
                         <div class="kpi-icon-wrapper green-bg">
+
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a"
                                 stroke-width="2">
+
                                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+
                                 <circle cx="9" cy="7" r="4" />
+
                                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+
                             </svg>
+
                         </div>
+
+
                         <div class="kpi-details">
-                            <span class="kpi-label">Paid Tenants</span>
-                            <h1 id="paidClientsCount" class="kpi-value">0</h1>
+
+                            <span class="kpi-label">
+                                Paid Tenants
+                            </span>
+
+                            <h1 id="paidClientsCount" class="kpi-value">
+
+                                0
+
+                            </h1>
+
                         </div>
+
+
                     </div>
+
+
 
                     <div class="paid-kpi-card" id="paidClientsRevenueCard" data-paid-revenue-only>
 
+
                         <div class="kpi-icon-wrapper emerald-bg">
+
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669"
                                 stroke-width="2">
 
                                 <line x1="12" y1="1" x2="12" y2="23" />
+
                                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
 
                             </svg>
+
                         </div>
+
 
                         <div class="kpi-details">
-                            <span class="kpi-label">Collected Revenue</span>
+
+                            <span class="kpi-label">
+                                Collected Revenue
+                            </span>
+
                             <h1 id="paidClientsTotalRev" class="kpi-value text-emerald">
+
                                 $0
+
                             </h1>
+
                         </div>
 
+
                     </div>
+
+
+
                     <div class="paid-kpi-card">
+
+
                         <div class="kpi-icon-wrapper blue-bg">
+
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb"
                                 stroke-width="2">
+
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+
                                 <polyline points="22 4 12 14.01 9 11.01" />
+
                             </svg>
+
                         </div>
+
+
                         <div class="kpi-details">
-                            <span class="kpi-label">Settlement Rate</span>
-                            <h1 id="paidRatePercentage" class="kpi-value">0%</h1>
+
+                            <span class="kpi-label">
+                                Settlement Rate
+                            </span>
+
+                            <h1 id="paidRatePercentage" class="kpi-value">
+
+                                0%
+
+                            </h1>
+
                         </div>
+
+
                     </div>
+
+
                 </div>
+
+
 
                 <div class="paid-filter-toolbar">
+
+
                     <div class="paid-search-input-wrapper">
+
                         <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8"
                             stroke-width="2">
+
                             <circle cx="11" cy="11" r="8" />
+
                             <line x1="21" y1="21" x2="16.65" y2="16.65" />
+
                         </svg>
+
+
                         <input id="paidSearchInput" type="text"
                             placeholder="Search by tenant name, phone, floor, or room..." oninput="filterPaidClients()">
+
                     </div>
+
 
                     <div class="floor-filter-select-wrapper">
+
                         <select id="paidFloorFilter" onchange="filterPaidClients()">
-                            <option value="all">All Floors</option>
-                            <option value="1">Floor 1</option>
-                            <option value="2">Floor 2</option>
-                            <option value="3">Floor 3</option>
-                            <option value="4">Floor 4</option>
-                            <option value="5">Floor 5</option>
-                            <option value="6">Floor 6</option>
+
+                            <option value="all">
+                                All Floors
+                            </option>
+
+                            <option value="1">
+                                Floor 1
+                            </option>
+
+                            <option value="2">
+                                Floor 2
+                            </option>
+
+                            <option value="3">
+                                Floor 3
+                            </option>
+
+                            <option value="4">
+                                Floor 4
+                            </option>
+
+                            <option value="5">
+                                Floor 5
+                            </option>
+
+                            <option value="6">
+                                Floor 6
+                            </option>
+
                         </select>
+
                     </div>
+
+
                 </div>
+
+
 
                 <div class="paid-table-card">
+
+
                     <table class="paid-table">
+
+
                         <thead>
+
                             <tr>
-                                <th>Client Details</th>
-                                <th>Contact Phone</th>
-                                <th>Parent Contact</th>
-                                <th>Location</th>
-                                <th>Bed No.</th>
-                                <th>Status</th>
+
+                                <th>
+                                    Client Details
+                                </th>
+
+                                <th>
+                                    Contact Phone
+                                </th>
+
+                                <th>
+                                    Parent Contact
+                                </th>
+
+                                <th>
+                                    Location
+                                </th>
+
+                                <th>
+                                    Bed No.
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
                             </tr>
+
                         </thead>
+
+
                         <tbody id="paidClientsBody"></tbody>
+
+
                     </table>
+
+
                 </div>
+
+
             </div>
+
         </div>
 
-        <!-- ========================= -->
-        <!-- MODALS                    -->
-        <!-- ========================= -->
 
-        <!-- Add Customer Modal -->
+
+        <!-- =====================================================
+             CUSTOMER MODAL
+        ====================================================== -->
+
         <div id="customerModal" class="modal">
+
+
             <div class="modal-content">
-                <h2>Add Customer</h2>
+
+                <h2>
+                    Add Customer
+                </h2>
+
                 <input type="text" id="customerName" maxlength="120" placeholder="Customer Name">
+
                 <input type="text" id="customerPhone" maxlength="40" placeholder="Phone Number">
+
                 <input type="text" id="customerParentPhone" maxlength="40" placeholder="Parent Phone Number">
+
+
                 <div class="form-group">
+
                     <label for="bookingType">
                         Accommodation Type
                     </label>
 
                     <select id="bookingType">
+
                         <option value="single">
                             Single Bed — $235 / Month
                         </option>
@@ -1287,42 +1977,89 @@
                         <option value="full_room">
                             Full Room — 2 Beds — $470 / Month
                         </option>
+
                     </select>
+
                 </div>
+
 
                 <div id="bookingTypeInfo" style="
-        margin-top:8px;
-        padding:10px 12px;
-        border-radius:10px;
-        background:#f8fafc;
-        color:#475569;
-        font-size:13px;
-    ">
+                        margin-top:8px;
+                        padding:10px 12px;
+                        border-radius:10px;
+                        background:#f8fafc;
+                        color:#475569;
+                        font-size:13px;
+                    ">
+
                     Single bed reservation.
+
                 </div>
+
+
                 <input type="file" id="customerIdImage" accept="image/jpeg,image/png,image/webp">
-                <button id="saveCustomer">Save</button>
-                <button id="cancelCustomer">Cancel</button>
+
+
+                <button id="saveCustomer">
+                    Save
+                </button>
+
+                <button id="cancelCustomer">
+                    Cancel
+                </button>
+
+
             </div>
+
         </div>
 
-        <!-- Edit Customer Modal -->
+
+
+        <!-- =====================================================
+             EDIT CUSTOMER
+        ====================================================== -->
+
         <div id="editModal" class="modal">
+
+
             <div class="modal-content">
-                <h2>Edit Customer</h2>
+
+                <h2>
+                    Edit Customer
+                </h2>
+
+
                 <input type="text" id="editName" maxlength="120" placeholder="Customer Name">
+
+
                 <input type="text" id="editPhone" maxlength="40" placeholder="Phone Number">
+
+
                 <input type="text" id="editParentPhone" maxlength="40" placeholder="Parent Phone Number">
+
+
                 <select id="editPaid">
-                    <option value="Paid">Paid</option>
-                    <option value="Not Paid">Not Paid</option>
+
+                    <option value="Paid">
+                        Paid
+                    </option>
+
+                    <option value="Not Paid">
+                        Not Paid
+                    </option>
+
                 </select>
+
+
                 <div class="form-group">
+
                     <label for="editBookingType">
                         Accommodation Type
                     </label>
 
+
                     <select id="editBookingType">
+
                         <option value="single">
                             Single Bed — $235 / Month
                         </option>
@@ -1330,55 +2067,133 @@
                         <option value="full_room">
                             Full Room — 2 Beds — $470 / Month
                         </option>
+
                     </select>
-                </div>
-                <button id="updateCustomer">Update</button>
 
-                <button id="checkoutCustomer">Check Out</button>
-                <button id="cancelEdit">Cancel</button>
+                </div>
+
+
+                <button id="updateCustomer">
+                    Update
+                </button>
+
+
+                <button id="checkoutCustomer">
+                    Check Out
+                </button>
+
+
+                <button id="cancelEdit">
+                    Cancel
+                </button>
+
+
             </div>
+
         </div>
 
-        <!-- KPI Modal -->
+
+
+        <!-- =====================================================
+             KPI MODAL
+        ====================================================== -->
+
         <div id="kpiModal" class="modal">
+
+
             <div class="modal-content">
-                <h2 id="kpiTitle">Details</h2>
+
+                <h2 id="kpiTitle">
+                    Details
+                </h2>
+
                 <div id="kpiList"></div>
-                <button onclick="closeKpi()">Close</button>
+
+                <button onclick="closeKpi()">
+                    Close
+                </button>
+
             </div>
+
         </div>
 
-        <!-- Payment History Modal -->
+
+
+        <!-- =====================================================
+             PAYMENT HISTORY
+        ====================================================== -->
+
         <div id="historyModal" class="modal">
+
+
             <div class="history-box">
+
+
                 <div class="history-header">
+
+
                     <div>
-                        <h2>💳 Payment History</h2>
-                        <small>All customer payment records</small>
+
+                        <h2>
+                            💳 Payment History
+                        </h2>
+
+                        <small>
+                            All customer payment records
+                        </small>
+
                     </div>
-                    <button class="close-btn" onclick="closeHistory()">✕</button>
+
+
+                    <button class="close-btn" onclick="closeHistory()">
+
+                        ✕
+
+                    </button>
+
+
                 </div>
+
+
                 <div class="history-toolbar">
+
                     <input type="text" id="historySearch" placeholder="🔍 Search customer...">
+
                 </div>
+
+
                 <div class="history-table-container">
+
                     <table class="history-table">
+
                         <tbody id="historyContainer"></tbody>
+
                     </table>
+
                 </div>
+
+
             </div>
+
         </div>
-        <!-- ==========================================
-     USER MANAGEMENT MODAL
-========================================== -->
+
+
+
+        <!-- =====================================================
+             USER MANAGEMENT MODAL
+        ====================================================== -->
 
         <div id="userModal" class="modal">
 
+
             <div class="modal-content user-management-modal">
+
 
                 <div class="user-modal-header">
 
+
                     <div>
+
                         <h2 id="userModalTitle">
                             Add New User
                         </h2>
@@ -1386,16 +2201,20 @@
                         <p>
                             Create a user and assign individual permissions.
                         </p>
+
                     </div>
 
+
                     <button type="button" class="close-btn" onclick="closeUserModal()">
+
                         ✕
+
                     </button>
+
 
                 </div>
 
 
-                <!-- USER NAME -->
 
                 <div class="form-group-custom">
 
@@ -1408,7 +2227,6 @@
                 </div>
 
 
-                <!-- EMAIL -->
 
                 <div class="form-group-custom">
 
@@ -1421,7 +2239,6 @@
                 </div>
 
 
-                <!-- PASSWORD -->
 
                 <div class="form-group-custom" id="managedPasswordGroup">
 
@@ -1432,17 +2249,18 @@
                     <input id="managedUserPassword" type="password" minlength="8" placeholder="Minimum 8 characters">
 
                     <small style="
-                color:#94a3b8;
-                display:block;
-                margin-top:6px;
-            ">
+                            color:#94a3b8;
+                            display:block;
+                            margin-top:6px;
+                        ">
+
                         Password is required only when creating a new user.
+
                     </small>
 
                 </div>
 
 
-                <!-- ROLE -->
 
                 <div class="form-group-custom">
 
@@ -1481,7 +2299,6 @@
                 </div>
 
 
-                <!-- STATUS -->
 
                 <div class="form-group-custom">
 
@@ -1504,13 +2321,15 @@
                 </div>
 
 
-                <!-- PERMISSIONS -->
 
                 <div class="permissions-section">
 
+
                     <div class="permissions-title">
 
+
                         <div>
+
                             <h3>
                                 Permissions
                             </h3>
@@ -1518,7 +2337,9 @@
                             <p>
                                 Select exactly what this user can access.
                             </p>
+
                         </div>
+
 
                         <button type="button" class="permission-default-btn" onclick="applyRoleDefaultsToEditor()">
 
@@ -1526,21 +2347,21 @@
 
                         </button>
 
+
                     </div>
 
 
                     <div id="permissionEditor" class="permission-grid">
 
-                        <!-- Generated by JavaScript -->
-
                     </div>
+
 
                 </div>
 
 
-                <!-- FOOTER -->
 
                 <div class="user-modal-footer">
+
 
                     <button type="button" class="btn-cancel" onclick="closeUserModal()">
 
@@ -1548,82 +2369,230 @@
 
                     </button>
 
+
                     <button type="button" class="btn-save" onclick="saveManagedUser()">
 
                         Save User
 
                     </button>
 
+
                 </div>
+
 
             </div>
 
         </div>
-        <!-- Confirm Modal -->
+
+
+
+        <!-- =====================================================
+             CONFIRM MODAL
+        ====================================================== -->
+
         <div id="confirmModal" class="modal">
+
+
             <div class="modal-content confirm-box">
-                <h2>⚠️ Confirmation</h2>
-                <p id="confirmText">Are you sure you want to change this customer to Unpaid?</p>
+
+                <h2>
+                    ⚠️ Confirmation
+                </h2>
+
+                <p id="confirmText">
+                    Are you sure you want to change this customer to Unpaid?
+                </p>
+
+
                 <div class="confirm-buttons">
-                    <button id="confirmCancel" class="cancel-btn">Cancel</button>
-                    <button id="confirmOk" class="danger-btn">Yes, Change</button>
+
+                    <button id="confirmCancel" class="cancel-btn">
+
+                        Cancel
+
+                    </button>
+
+
+                    <button id="confirmOk" class="danger-btn">
+
+                        Yes, Change
+
+                    </button>
+
                 </div>
+
+
             </div>
+
         </div>
 
-        <!-- Professional Add Expense Modal -->
+
+
+        <!-- =====================================================
+             EXPENSE MODAL
+        ====================================================== -->
+
         <div id="expenseModal" class="modal">
+
+
             <div class="modal-content professional-modal">
+
+
                 <div class="modal-header-custom">
+
+
                     <h3>
+
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                             stroke-linecap="round" stroke-linejoin="round">
+
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+
                             <polyline points="14 2 14 8 20 8" />
+
                             <line x1="8" y1="13" x2="16" y2="13" />
+
                             <line x1="8" y1="17" x2="13" y2="17" />
+
                         </svg>
+
                         Add New Expense Entry
+
                     </h3>
-                    <span class="close-modal-x" onclick="closeExpenseModal()">&times;</span>
+
+
+                    <span class="close-modal-x" onclick="closeExpenseModal()">
+
+                        &times;
+
+                    </span>
+
+
                 </div>
+
+
                 <form id="expenseForm" onsubmit="event.preventDefault();">
+
+
                     <div class="form-group-custom">
-                        <label for="expenseCategory">Expense Category</label>
+
+                        <label for="expenseCategory">
+                            Expense Category
+                        </label>
+
                         <select id="expenseCategory" required>
-                            <option value="" disabled selected>Select category...</option>
-                            <option value="Maintenance">Maintenance & Repairs</option>
-                            <option value="Utilities">Utilities (Electricity, Water, Internet)</option>
-                            <option value="Salaries">Staff Salaries & Wages</option>
-                            <option value="Cleaning">Cleaning Services & Supplies</option>
-                            <option value="Other">Other Expenses</option>
+
+                            <option value="" disabled selected>
+
+                                Select category...
+
+                            </option>
+
+                            <option value="Maintenance">
+                                Maintenance & Repairs
+                            </option>
+
+                            <option value="Utilities">
+                                Utilities (Electricity, Water, Internet)
+                            </option>
+
+                            <option value="Salaries">
+                                Staff Salaries & Wages
+                            </option>
+
+                            <option value="Cleaning">
+                                Cleaning Services & Supplies
+                            </option>
+
+                            <option value="Other">
+                                Other Expenses
+                            </option>
+
                         </select>
+
                     </div>
+
+
                     <div class="form-group-custom">
-                        <label for="expenseDescription">Description / Vendor Name</label>
+
+                        <label for="expenseDescription">
+                            Description / Vendor Name
+                        </label>
+
                         <input id="expenseDescription" type="text" maxlength="250"
                             placeholder="e.g. Generator repair service" required>
+
                     </div>
+
+
                     <div class="form-row-custom">
+
+
                         <div class="form-group-custom">
-                            <label for="expenseAmount">Amount ($)</label>
+
+                            <label for="expenseAmount">
+                                Amount ($)
+                            </label>
+
                             <input id="expenseAmount" type="number" step="0.01" min="0" placeholder="0.00" required>
+
                         </div>
+
+
                         <div class="form-group-custom">
-                            <label for="expenseDate">Expense Date</label>
+
+                            <label for="expenseDate">
+                                Expense Date
+                            </label>
+
                             <input id="expenseDate" type="date" required>
+
                         </div>
+
+
                     </div>
+
+
                     <div class="modal-footer-custom">
-                        <button type="button" class="btn-cancel" id="cancelExpense">Cancel</button>
-                        <button type="button" class="btn-save" id="saveExpense">Save Expense Record</button>
+
+
+                        <button type="button" class="btn-cancel" id="cancelExpense">
+
+                            Cancel
+
+                        </button>
+
+
+                        <button type="button" class="btn-save" id="saveExpense">
+
+                            Save Expense Record
+
+                        </button>
+
+
                     </div>
+
+
                 </form>
+
+
             </div>
+
         </div>
 
+
     </div>
-    <script type="module" src="./app.js"></script>
+
+
+
+    <!-- =====================================================
+         MAIN JAVASCRIPT
+    ====================================================== -->
+
+    <script type="module" src="./app.js">
+    </script>
+
+
 </body>
 
 </html>
