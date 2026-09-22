@@ -2106,6 +2106,8 @@ async function startRealtimeData() {
 
         await loadUsers();
     }
+
+startRequestsRealtime();
 }
 
 
@@ -6726,8 +6728,60 @@ let requests = [];
 let editingRequestId = null;
 let unsubscribeRequests = null;
 
+function startRequestsRealtime() {
 
-/* ---------------------------------------------------------
+    // إلغاء أي Listener سابق
+    if (unsubscribeRequests) {
+        unsubscribeRequests();
+        unsubscribeRequests = null;
+    }
+
+    if (!canReadRequests()) {
+        requests = [];
+        renderRequests();
+        return;
+    }
+
+    unsubscribeRequests = onSnapshot(
+        companyCollection("requests"),
+        snapshot => {
+
+            requests = snapshot.docs.map(docSnap => ({
+                id: docSnap.id,
+                ...docSnap.data()
+            }));
+
+            // ترتيب الأحدث أولاً
+            requests.sort((a, b) => {
+                const aTime =
+                    a.updatedAt?.toMillis?.() ||
+                    a.createdAt?.toMillis?.() ||
+                    0;
+
+                const bTime =
+                    b.updatedAt?.toMillis?.() ||
+                    b.createdAt?.toMillis?.() ||
+                    0;
+
+                return bTime - aTime;
+            });
+
+            // تحديث الجدول مباشرة
+            renderRequests();
+        },
+        error => {
+
+            console.error(
+                "Requests listener:",
+                error
+            );
+
+            showToast(
+                firebaseErrorMessage(error)
+            );
+        }
+    );
+}/* ---------------------------------------------------------
    REQUEST PERMISSIONS
    --------------------------------------------------------- */
 
@@ -7053,8 +7107,6 @@ async function saveRequest() {
 
         closeRequestModal();
 
-        await loadRequests();
-
     } catch (error) {
 
         console.error("saveRequest:", error);
@@ -7064,8 +7116,107 @@ async function saveRequest() {
         );
     }
 }
+/* ---------------------------------------------------------
+   MARK REQUEST AS RESOLVED
+   --------------------------------------------------------- */
+function getRequestStatus(request) {
+    // إذا كان الطلب محلولاً، لا يصبح Overdue
+    if (
+        request.status === "resolved" ||
+        request.status === "Resolved"
+    ) {
+        return "Resolved";
+    }
+
+    const createdAt =
+        request.createdAt?.toDate?.() ||
+        (request.createdAt ? new Date(request.createdAt) : null);
+
+    if (!createdAt || isNaN(createdAt.getTime())) {
+        return request.status || "Pending";
+    }
+
+    const now = new Date();
+
+    const diffMs = now.getTime() - createdAt.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+    if (diffDays >= 3) {
+        return "Overdue";
+    }
+
+    return "Pending";
+}
+async function resolveRequest(requestId) {
+
+    if (!canWriteRequests()) {
+        showToast("You do not have permission to resolve requests.");
+        return;
+    }
+
+    const request = requests.find(
+        r => r.id === requestId
+    );
+
+    if (!request) {
+        showToast("Request not found.");
+        return;
+    }
+
+    if (request.status === "resolved") {
+        showToast("This request is already resolved.");
+        return;
+    }
+
+    const confirmed = window.confirm(
+        `Mark "${request.title || "this request"}" as Resolved?`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+
+        requireFirebase();
+        requireCompany();
+
+        await updateDoc(
+            companyDoc("requests", requestId),
+            {
+                status: "resolved",
+
+                resolvedAt: serverTimestamp(),
+
+                resolvedBy:
+                    auth.currentUser?.uid || "",
+
+                updatedAt:
+                    serverTimestamp(),
+
+                updatedBy:
+                    auth.currentUser?.uid || ""
+            }
+        );
+
+        showToast(
+            "✓ Request marked as Resolved."
+        );
 
 
+    } catch (error) {
+
+        console.error(
+            "resolveRequest:",
+            error
+        );
+
+        showToast(
+            firebaseErrorMessage(error)
+        );
+
+    }
+}
 /* ---------------------------------------------------------
    VIEW REQUEST
    --------------------------------------------------------- */
@@ -7298,7 +7449,6 @@ async function deleteRequest(requestId) {
 
         showToast("Request deleted.");
 
-        await loadRequests();
 
     } catch (error) {
 
@@ -7399,9 +7549,33 @@ function renderRequests() {
             }
 
 
+            /*
+             * حساب حالة الطلب تلقائياً
+             *
+             * Pending  = أقل من 3 أيام
+             * Overdue  = 3 أيام أو أكثر
+             * Resolved = يبقى Resolved
+             */
+
+            let requestStatus =
+                String(
+                    request.status || "pending"
+                ).toLowerCase();
+
+
+            if (
+                requestStatus !== "resolved" &&
+                requestStatus !== "completed" &&
+                isRequestOverdue(request)
+            ) {
+                requestStatus = "overdue";
+            }
+
+
             if (
                 status !== "all" &&
-                request.status !== status
+                requestStatus !==
+                    String(status).toLowerCase()
             ) {
                 return false;
             }
@@ -7439,8 +7613,12 @@ function renderRequests() {
                         <div class="requests-empty-icon">
                             <i class="fa-solid fa-inbox"></i>
                         </div>
+
                         <h3>No requests found</h3>
-                        <p>Create a new request or change the filters.</p>
+
+                        <p>
+                            Create a new request or change the filters.
+                        </p>
                     </div>
                 </td>
             </tr>
@@ -7472,8 +7650,37 @@ function renderRequests() {
                 .join(" • ") || "—";
 
 
+            /*
+             * هل الطلب Overdue؟
+             */
+
             const overdue =
                 isRequestOverdue(request);
+
+
+            /*
+             * تحديد الحالة التي ستظهر في الجدول
+             */
+
+            let displayStatus =
+                String(
+                    request.status || "pending"
+                ).toLowerCase();
+
+
+            /*
+             * إذا لم يكن الطلب Resolved
+             * ومر عليه 3 أيام أو أكثر
+             * يصبح Overdue تلقائياً
+             */
+
+            if (
+                displayStatus !== "resolved" &&
+                displayStatus !== "completed" &&
+                overdue
+            ) {
+                displayStatus = "overdue";
+            }
 
 
             const updated =
@@ -7487,9 +7694,11 @@ function renderRequests() {
                 <tr>
 
                     <td class="request-title-cell">
+
                         <strong>
                             ${escapeHTML(
-                                request.title || "Untitled Request"
+                                request.title ||
+                                "Untitled Request"
                             )}
                         </strong>
 
@@ -7498,6 +7707,7 @@ function renderRequests() {
                                 .slice(-6)
                                 .toUpperCase()}
                         </span>
+
                     </td>
 
 
@@ -7517,34 +7727,44 @@ function renderRequests() {
 
 
                     <td>
+
                         <span class="
                             request-badge
                             priority-${escapeHTML(
-                                request.priority || "medium"
+                                request.priority ||
+                                "medium"
                             )}
                         ">
+
                             ${escapeHTML(
                                 formatRequestLabel(
-                                    request.priority || "medium"
+                                    request.priority ||
+                                    "medium"
                                 )
                             )}
+
                         </span>
+
                     </td>
 
 
                     <td>
+
                         <span class="
                             request-badge
                             status-${String(
-                                request.status || "pending"
+                                displayStatus
                             ).replaceAll("_", "-")}
                         ">
+
                             ${escapeHTML(
                                 formatRequestLabel(
-                                    request.status || "pending"
+                                    displayStatus
                                 )
                             )}
+
                         </span>
+
                     </td>
 
 
@@ -7556,19 +7776,25 @@ function renderRequests() {
 
 
                     <td class="${
-                        overdue
+                        overdue &&
+                        displayStatus !== "resolved" &&
+                        displayStatus !== "completed"
                             ? "request-overdue"
                             : ""
                     }">
 
                         ${
                             request.dueDate
-                                ? escapeHTML(request.dueDate)
+                                ? escapeHTML(
+                                    request.dueDate
+                                )
                                 : "—"
                         }
 
                         ${
-                            overdue
+                            overdue &&
+                            displayStatus !== "resolved" &&
+                            displayStatus !== "completed"
                                 ? "<small>Overdue</small>"
                                 : ""
                         }
@@ -7589,25 +7815,35 @@ function renderRequests() {
                                 class="request-action-btn"
                                 title="View"
                                 onclick="viewRequest('${request.id}')">
+
                                 <i class="fa-solid fa-eye"></i>
+
                             </button>
+
 
                             ${
                                 canWriteRequests()
                                     ? `
+
                                     <button
                                         class="request-action-btn"
                                         title="Edit"
                                         onclick="openRequestModal('${request.id}')">
+
                                         <i class="fa-solid fa-pen"></i>
+
                                     </button>
+
 
                                     <button
                                         class="request-action-btn danger"
                                         title="Delete"
                                         onclick="deleteRequest('${request.id}')">
+
                                         <i class="fa-solid fa-trash"></i>
+
                                     </button>
+
                                     `
                                     : ""
                             }
@@ -7621,7 +7857,6 @@ function renderRequests() {
 
         }).join("");
 }
-
 
 /* ---------------------------------------------------------
    REQUEST KPIs
@@ -7750,26 +7985,57 @@ function formatRequestTimestamp(timestamp) {
 
 function isRequestOverdue(request) {
 
+    // الطلب المحلول لا يصبح Overdue
+    const status =
+        String(
+            request.status || "pending"
+        ).toLowerCase();
+
     if (
-        !request.dueDate ||
-        request.status === "completed" ||
-        request.status === "cancelled" ||
-        request.status === "rejected"
+        status === "resolved" ||
+        status === "completed"
     ) {
         return false;
     }
 
-    const due =
-        new Date(
-            `${request.dueDate}T23:59:59`
+
+    // تاريخ إنشاء الطلب
+    const createdAt =
+        request.createdAt?.toDate?.() ||
+        (
+            request.createdAt
+                ? new Date(request.createdAt)
+                : null
         );
 
-    return (
-        !Number.isNaN(due.getTime()) &&
-        due.getTime() < Date.now()
-    );
-}
 
+    // إذا لم يوجد تاريخ إنشاء
+    if (
+        !createdAt ||
+        isNaN(createdAt.getTime())
+    ) {
+        return false;
+    }
+
+
+    // الوقت الحالي
+    const now = new Date();
+
+
+    // الفرق بالأيام
+    const diffMs =
+        now.getTime() -
+        createdAt.getTime();
+
+
+    const diffDays =
+        diffMs /
+        (1000 * 60 * 60 * 24);
+
+
+    // بعد 3 أيام يصبح Overdue
+    return diffDays >= 3;
+}
 
 /* ---------------------------------------------------------
    EXPORT CSV
