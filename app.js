@@ -4222,35 +4222,10 @@ async function resetMonthlyPayments() {
         settings.lastPaymentReset ||
         null;
 
-    if (!lastProcessedMonth) {
 
-        await setDoc(
-            settingsRef,
-            {
-                lastPaymentReset:
-                    currentMonthKey,
-
-                currentMonthKey,
-
-                updatedAt:
-                    serverTimestamp()
-            },
-            {
-                merge: true
-            }
-        );
-
-        if (
-            customers.some(Boolean)
-        ) {
-            await saveMonthlyPaidRecord(
-                currentMonthKey
-            );
-        }
-
-        return;
-    }
-
+    /*
+     * Same month = already processed.
+     */
     if (
         lastProcessedMonth ===
         currentMonthKey
@@ -4258,7 +4233,11 @@ async function resetMonthlyPayments() {
         return;
     }
 
-    // Archive previous month before resetting payment statuses.
+
+    /*
+     * Save previous month's
+     * payment history before reset.
+     */
     if (lastProcessedMonth) {
 
         await saveMonthlyPaidRecord(
@@ -4266,6 +4245,11 @@ async function resetMonthlyPayments() {
         );
     }
 
+
+    /*
+     * Reset ALL Paid customers
+     * to Unpaid.
+     */
     const batch =
         writeBatch(db);
 
@@ -4276,7 +4260,7 @@ async function resetMonthlyPayments() {
 
             if (
                 !customer ||
-                customer.paid === "Unpaid"
+                customer.paid !== "Paid"
             ) {
                 return;
             }
@@ -4301,10 +4285,20 @@ async function resetMonthlyPayments() {
         }
     );
 
+
+    /*
+     * Commit only if there
+     * are customers to reset.
+     */
     if (resetCount > 0) {
+
         await batch.commit();
     }
 
+
+    /*
+     * Mark this month as processed.
+     */
     await setDoc(
         settingsRef,
         {
@@ -4321,11 +4315,11 @@ async function resetMonthlyPayments() {
         }
     );
 
+
     console.log(
-        `Reset ${resetCount} customers for ${currentMonthKey}.`
+        `Monthly payment reset: ${resetCount} customers changed to Unpaid for ${currentMonthKey}.`
     );
 }
-
 
 async function showHistory() {
 
@@ -7218,14 +7212,37 @@ function openRequestModal(
         }
 
 
-        if ($("requestDescription")) {
+if ($("requestDescription")) {
+    $("requestDescription").value =
+        request.description || "";
+}
 
-            $("requestDescription").value =
-                request.description || "";
-        }
+// Only status can be changed when editing
+const lockedFields = [
+    "requestTitle",
+    "requestType",
+    "requestPriority",
+    "requestRequestedBy",
+    "requestFloor",
+    "requestApartment",
+    "requestRoom",
+    "requestDueDate",
+    "requestDescription"
+];
 
+lockedFields.forEach(id => {
+    const field = $(id);
 
-    } else {
+    if (field) {
+        field.disabled = true;
+    }
+});
+
+if ($("requestStatus")) {
+    $("requestStatus").disabled = false;
+}
+
+} else {
 
         if (title) {
 
@@ -7488,15 +7505,21 @@ async function saveRequest() {
                 return;
             }
 
+await updateDoc(
+    requestDoc(existingRequest),
+    {
+        status:
+            $("requestStatus")?.value ||
+            existingRequest.status ||
+            "pending",
 
-            await updateDoc(
+        updatedAt:
+            serverTimestamp(),
 
-                requestDoc(
-                    existingRequest
-                ),
-
-                requestData
-            );
+        updatedBy:
+            auth.currentUser?.uid || ""
+    }
+);
 
 
             showToast(
@@ -7842,9 +7865,9 @@ function viewRequest(
                     ">
 
                         ${escapeHTML(
-                            request.type ||
-                            "General"
-                        )}
+        request.type ||
+        "General"
+    )}
 
                     </strong>
 
@@ -7863,11 +7886,11 @@ function viewRequest(
                     ">
 
                         ${escapeHTML(
-                            formatRequestLabel(
-                                request.priority ||
-                                "medium"
-                            )
-                        )}
+        formatRequestLabel(
+            request.priority ||
+            "medium"
+        )
+    )}
 
                     </strong>
 
@@ -7886,11 +7909,11 @@ function viewRequest(
                     ">
 
                         ${escapeHTML(
-                            formatRequestLabel(
-                                request.status ||
-                                "pending"
-                            )
-                        )}
+        formatRequestLabel(
+            request.status ||
+            "pending"
+        )
+    )}
 
                     </strong>
 
@@ -7909,9 +7932,9 @@ function viewRequest(
                     ">
 
                         ${escapeHTML(
-                            request.requestedBy ||
-                            "Not specified"
-                        )}
+        request.requestedBy ||
+        "Not specified"
+    )}
 
                     </strong>
 
@@ -7948,9 +7971,9 @@ function viewRequest(
                     ">
 
                         ${escapeHTML(
-                            request.dueDate ||
-                            "No due date"
-                        )}
+        request.dueDate ||
+        "No due date"
+    )}
 
                     </strong>
 
@@ -7979,19 +8002,18 @@ function viewRequest(
                 ">
 
                     ${escapeHTML(
-                        request.description ||
-                        ""
-                    )}
+        request.description ||
+        ""
+    )}
 
                 </p>
 
             </div>
 
 
-            ${
-                canWriteRequests()
+            ${canWriteRequests()
 
-                    ? `
+            ? `
 
                     <div style="
                         display:flex;
@@ -8000,20 +8022,20 @@ function viewRequest(
                         margin-top:18px;
                     ">
 
-                        <button
-                            class="btn-secondary-export"
-                            onclick="closeRequestDetails();openRequestModal('${request.id}')">
+<button
+    class="btn-secondary-export"
+    onclick="closeRequestDetails();openRequestModal('${request.id}')">
 
-                            Edit
+    Change Status
 
-                        </button>
+</button>
 
                     </div>
 
                     `
 
-                    : ""
-            }
+            : ""
+        }
 
         </div>
 
@@ -8261,10 +8283,10 @@ function renderRequests() {
                 if (
 
                     requestStatus !==
-                        "resolved" &&
+                    "resolved" &&
 
                     requestStatus !==
-                        "completed" &&
+                    "completed" &&
 
                     isRequestOverdue(
                         request
@@ -8280,12 +8302,12 @@ function renderRequests() {
                 if (
 
                     status !==
-                        "all" &&
+                    "all" &&
 
                     requestStatus !==
-                        String(
-                            status
-                        ).toLowerCase()
+                    String(
+                        status
+                    ).toLowerCase()
 
                 ) {
 
@@ -8296,10 +8318,10 @@ function renderRequests() {
                 if (
 
                     priority !==
-                        "all" &&
+                    "all" &&
 
                     request.priority !==
-                        priority
+                    priority
 
                 ) {
 
@@ -8310,10 +8332,10 @@ function renderRequests() {
                 if (
 
                     type !==
-                        "all" &&
+                    "all" &&
 
                     request.type !==
-                        type
+                    type
 
                 ) {
 
@@ -8421,17 +8443,17 @@ function renderRequests() {
                                 <strong>
 
                                     ${escapeHTML(
-                                        request.title ||
-                                        "Untitled Request"
-                                    )}
+                        request.title ||
+                        "Untitled Request"
+                    )}
 
                                 </strong>
 
                                 <span>
 
                                     REQ-${request.id
-                                        .slice(-6)
-                                        .toUpperCase()}
+                            .slice(-6)
+                            .toUpperCase()}
 
                                 </span>
 
@@ -8441,12 +8463,12 @@ function renderRequests() {
                             <td>
 
                                 ${escapeHTML(
-                                    truncateRequestText(
-                                        request.description ||
-                                        "",
-                                        65
-                                    )
-                                )}
+                                truncateRequestText(
+                                    request.description ||
+                                    "",
+                                    65
+                                )
+                            )}
 
                             </td>
 
@@ -8463,17 +8485,17 @@ function renderRequests() {
                                 <span class="
                                     request-badge
                                     priority-${escapeHTML(
-                                        request.priority ||
-                                        "medium"
-                                    )}
+                                request.priority ||
+                                "medium"
+                            )}
                                 ">
 
                                     ${escapeHTML(
-                                        formatRequestLabel(
-                                            request.priority ||
-                                            "medium"
-                                        )
-                                    )}
+                                formatRequestLabel(
+                                    request.priority ||
+                                    "medium"
+                                )
+                            )}
 
                                 </span>
 
@@ -8485,18 +8507,18 @@ function renderRequests() {
                                 <span class="
                                     request-badge
                                     status-${String(
-                                        displayStatus
-                                    ).replaceAll(
-                                        "_",
-                                        "-"
-                                    )}
+                                displayStatus
+                            ).replaceAll(
+                                "_",
+                                "-"
+                            )}
                                 ">
 
                                     ${escapeHTML(
-                                        formatRequestLabel(
-                                            displayStatus
-                                        )
-                                    )}
+                                formatRequestLabel(
+                                    displayStatus
+                                )
+                            )}
 
                                 </span>
 
@@ -8506,47 +8528,44 @@ function renderRequests() {
                             <td>
 
                                 ${escapeHTML(
-                                    request.requestedBy ||
-                                    "—"
-                                )}
+                                request.requestedBy ||
+                                "—"
+                            )}
 
                             </td>
 
 
-                            <td class="${
-                                overdue &&
-                                displayStatus !==
-                                    "resolved" &&
-                                displayStatus !==
-                                    "completed"
+                            <td class="${overdue &&
+                            displayStatus !==
+                            "resolved" &&
+                            displayStatus !==
+                            "completed"
 
-                                    ? "request-overdue"
+                            ? "request-overdue"
 
-                                    : ""
-                            }">
+                            : ""
+                        }">
 
-                                ${
-                                    request.dueDate
+                                ${request.dueDate
 
-                                        ? escapeHTML(
-                                            request.dueDate
-                                        )
+                            ? escapeHTML(
+                                request.dueDate
+                            )
 
-                                        : "—"
-                                }
+                            : "—"
+                        }
 
 
-                                ${
-                                    overdue &&
-                                    displayStatus !==
-                                        "resolved" &&
-                                    displayStatus !==
-                                        "completed"
+                                ${overdue &&
+                            displayStatus !==
+                            "resolved" &&
+                            displayStatus !==
+                            "completed"
 
-                                        ? "<small>Overdue</small>"
+                            ? "<small>Overdue</small>"
 
-                                        : ""
-                                }
+                            : ""
+                        }
 
                             </td>
 
@@ -8554,8 +8573,8 @@ function renderRequests() {
                             <td>
 
                                 ${escapeHTML(
-                                    updated
-                                )}
+                            updated
+                        )}
 
                             </td>
 
@@ -8569,22 +8588,34 @@ function renderRequests() {
                                         title="View"
                                         onclick="viewRequest('${request.id}')">
 
-                                        <i class="fa-solid fa-eye"></i>
-
+                                        <svg class="request-action-icon" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor"
+     stroke-width="1.8"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
+    <circle cx="12" cy="12" r="2.5"/>
+</svg>
                                     </button>
 
 
-                                    ${
-                                        canWriteRequests()
+                                    ${canWriteRequests()
 
-                                            ? `
+                            ? `
 
                                             <button
                                                 class="request-action-btn"
                                                 title="Edit"
                                                 onclick="openRequestModal('${request.id}')">
 
-                                                <i class="fa-solid fa-pen"></i>
+                                             <svg class="request-action-icon" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor"
+     stroke-width="1.8"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+    <path d="M12 20h9"/>
+    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4L16.5 3.5Z"/>
+</svg>
 
                                             </button>
 
@@ -8594,14 +8625,23 @@ function renderRequests() {
                                                 title="Delete"
                                                 onclick="deleteRequest('${request.id}')">
 
-                                                <i class="fa-solid fa-trash"></i>
+                                          <svg class="request-action-icon" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor"
+     stroke-width="1.8"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+    <path d="M4 7h16"/>
+    <path d="M10 11v6M14 11v6"/>
+    <path d="M6 7l1 14h10l1-14"/>
+    <path d="M9 7V4h6v3"/>
+</svg>
 
                                             </button>
 
                                             `
 
-                                            : ""
-                                    }
+                            : ""
+                        }
 
                                 </div>
 
@@ -8659,10 +8699,10 @@ function updateRequestKPIs() {
                 return (
 
                     status ===
-                        "in_progress" ||
+                    "in_progress" ||
 
                     status ===
-                        "in progress"
+                    "in progress"
 
                 );
             }
@@ -8683,31 +8723,37 @@ function updateRequestKPIs() {
                 return (
 
                     status ===
-                        "resolved" ||
+                    "resolved" ||
 
                     status ===
-                        "completed"
+                    "completed"
 
                 );
             }
         ).length;
 
 
-    const urgent =
-        requests.filter(
-            request => {
+const urgent =
+    requests.filter(
+        request => {
 
-                return (
+            const priority =
+                String(
+                    request.priority || ""
+                ).toLowerCase();
 
-                    String(
-                        request.priority ||
-                        ""
-                    ).toLowerCase() ===
-                    "urgent"
+            const status =
+                String(
+                    request.status || ""
+                ).toLowerCase();
 
-                );
-            }
-        ).length;
+            return (
+                priority === "urgent" &&
+                status !== "resolved" &&
+                status !== "completed"
+            );
+        }
+    ).length;
 
 
     const overdue =
@@ -9011,34 +9057,34 @@ function exportRequestsCSV() {
                     .toUpperCase()}`,
 
                 request.title ||
-                    "",
+                "",
 
                 request.type ||
-                    "",
+                "",
 
                 request.priority ||
-                    "",
+                "",
 
                 request.status ||
-                    "",
+                "",
 
                 request.requestedBy ||
-                    "",
+                "",
 
                 request.floor ||
-                    "",
+                "",
 
                 request.apartment ||
-                    "",
+                "",
 
                 request.room ||
-                    "",
+                "",
 
                 request.dueDate ||
-                    "",
+                "",
 
                 request.description ||
-                    "",
+                "",
 
                 formatRequestTimestamp(
 
