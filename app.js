@@ -3833,37 +3833,67 @@ function showKpi(type) {
 
             div.className = "kpi-item";
 
-            if (item.type === "available") {
+           if (item.type === "available") {
 
-                div.innerHTML = `
+    div.className = "kpi-item available-kpi-card";
 
-                    <div class="kpi-title">
-                        🛏 Empty Bed
-                    </div>
+    div.innerHTML = `
 
-                    <div class="kpi-row">
-                        <span>Floor</span>
-                        <b>${item.floor}</b>
-                    </div>
+        <div class="kpi-title">
+            🛏 Empty Bed
+        </div>
 
-                    <div class="kpi-row">
-                        <span>Apartment</span>
-                        <b>${item.apartment}</b>
-                    </div>
+        <div class="kpi-row">
+            <span>Floor</span>
+            <b>${item.floor}</b>
+        </div>
 
-                    <div class="kpi-row">
-                        <span>Room</span>
-                        <b>${item.room}</b>
-                    </div>
+        <div class="kpi-row">
+            <span>Apartment</span>
+            <b>${item.apartment}</b>
+        </div>
 
-                    <div class="kpi-row">
-                        <span>Bed</span>
-                        <b>${item.bed}</b>
-                    </div>
+        <div class="kpi-row">
+            <span>Room</span>
+            <b>${item.room}</b>
+        </div>
 
-                `;
+        <div class="kpi-row">
+            <span>Bed</span>
+            <b>${item.bed}</b>
+        </div>
 
-            } else {
+        <div class="kpi-add-customer">
+            ➕ Add Customer
+        </div>
+
+    `;
+
+    /*
+     * Clicking an Available Bed
+     * opens the Add Customer modal
+     */
+    div.addEventListener("click", () => {
+
+        const bedButton =
+            document.querySelector(
+                `.available[data-index="${item.index}"]`
+            );
+
+        if (!bedButton) {
+            alert("Bed button not found.");
+            return;
+        }
+
+        closeKpi();
+
+        openCustomerForBed(
+            bedButton
+        );
+
+    });
+
+} else {
 
                 div.innerHTML = `
 
