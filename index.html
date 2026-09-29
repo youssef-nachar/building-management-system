@@ -364,11 +364,14 @@
 
                     <div class="requests-kpi-card">
 
-                        <div class="requests-kpi-icon purple">
-
-                            <i class="fa-solid fa-layer-group"></i>
-
-                        </div>
+<div class="requests-kpi-icon purple">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 3 6.5 12 11l9-4.5L12 2Z"/>
+        <path d="m3 12 9 4.5 9-4.5"/>
+        <path d="m3 17.5 9 4.5 9-4.5"/>
+    </svg>
+</div>
 
                         <div>
 
@@ -388,11 +391,13 @@
 
                     <div class="requests-kpi-card">
 
-                        <div class="requests-kpi-icon amber">
-
-                            <i class="fa-regular fa-clock"></i>
-
-                        </div>
+       <div class="requests-kpi-icon amber">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 7v5l3 2"/>
+    </svg>
+</div>
 
                         <div>
 
@@ -412,12 +417,14 @@
 
                     <div class="requests-kpi-card">
 
-                        <div class="requests-kpi-icon blue">
-
-                            <i class="fa-solid fa-spinner"></i>
-
-                        </div>
-
+          <div class="requests-kpi-icon blue">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3a9 9 0 1 0 9 9"/>
+        <path d="M12 7v5l3 2"/>
+        <path d="M21 3v6h-6"/>
+    </svg>
+</div>
                         <div>
 
                             <span>
@@ -436,11 +443,13 @@
 
                     <div class="requests-kpi-card">
 
-                        <div class="requests-kpi-icon green">
-
-                            <i class="fa-solid fa-circle-check"></i>
-
-                        </div>
+<div class="requests-kpi-icon green">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="m8 12 2.5 2.5L16 9"/>
+    </svg>
+</div>
 
                         <div>
 
@@ -460,11 +469,15 @@
 
                     <div class="requests-kpi-card">
 
-                        <div class="requests-kpi-icon red">
-
-                            <i class="fa-solid fa-bolt"></i>
-
-                        </div>
+   <div class="requests-kpi-icon orange">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="17" rx="2"/>
+        <path d="M16 2v4M8 2v4M3 9h18"/>
+        <path d="M12 12v3"/>
+        <path d="M12 18h.01"/>
+    </svg>
+</div>
 
                         <div>
 
@@ -1342,7 +1355,54 @@
             </section>
 
 
+            
+            <!-- =====================================================
+                 FLOOR NAVIGATION
+            ====================================================== -->
+            <aside id="floorNavigator" class="floor-navigator" aria-label="Building floor navigation">
+                <div class="floor-nav-title">
+                    <i class="fa-solid fa-building"></i>
+                    <span>FLOORS</span>
+                </div>
+
+                <button type="button" class="floor-nav-btn active" data-floor="1" onclick="showBuildingFloor(1)">
+                    <span class="floor-nav-number">01</span>
+                    <span class="floor-nav-label">Floor 1</span>
+                </button>
+
+                <button type="button" class="floor-nav-btn" data-floor="2" onclick="showBuildingFloor(2)">
+                    <span class="floor-nav-number">02</span>
+                    <span class="floor-nav-label">Go to Floor 2</span>
+                </button>
+
+                <button type="button" class="floor-nav-btn" data-floor="3" onclick="showBuildingFloor(3)">
+                    <span class="floor-nav-number">03</span>
+                    <span class="floor-nav-label">Go to Floor 3</span>
+                </button>
+
+                <button type="button" class="floor-nav-btn" data-floor="4" onclick="showBuildingFloor(4)">
+                    <span class="floor-nav-number">04</span>
+                    <span class="floor-nav-label">Go to Floor 4</span>
+                </button>
+
+                <button type="button" class="floor-nav-btn" data-floor="5" onclick="showBuildingFloor(5)">
+                    <span class="floor-nav-number">05</span>
+                    <span class="floor-nav-label">Go to Floor 5</span>
+                </button>
+
+                <button type="button" class="floor-nav-btn" data-floor="6" onclick="showBuildingFloor(6)">
+                    <span class="floor-nav-number">06</span>
+                    <span class="floor-nav-label">Go to Floor 6</span>
+                </button>
+
+                <div class="floor-nav-current">
+                    <i class="fa-solid fa-location-dot"></i>
+                    <span id="currentFloorLabel">Floor 1</span>
+                </div>
+            </aside>
+
             <main id="building"></main>
+
 
 
         </div>
@@ -2591,6 +2651,111 @@
 
     <script type="module" src="./app.js">
     </script>
+    <script>
+        /* =========================================================
+           FLOOR NAVIGATION — SINGLE FLOOR VIEW
+           Keeps the Residents home page fixed with no page scrolling.
+        ========================================================== */
+        (function () {
+            let activeFloor = 1;
+            let floorObserverStarted = false;
+
+            function getFloorNumber(floorElement, index) {
+                const title = floorElement.querySelector("h2");
+                const text = title ? title.textContent : "";
+                const match = text.match(/(\d+)/);
+                return match ? Number(match[1]) : index + 1;
+            }
+
+            function refreshFloorNavigation() {
+                const building = document.getElementById("building");
+                if (!building) return;
+
+                const floors = Array.from(building.querySelectorAll(".floor"));
+                if (!floors.length) return;
+
+                floors.forEach((floor, index) => {
+                    const number = getFloorNumber(floor, index);
+                    floor.dataset.floorNumber = number;
+
+                    if (number === activeFloor) {
+                        floor.classList.add("floor-active");
+                        floor.classList.remove("floor-hidden");
+                    } else {
+                        floor.classList.remove("floor-active");
+                        floor.classList.add("floor-hidden");
+                    }
+                });
+
+                document.querySelectorAll(".floor-nav-btn").forEach(btn => {
+                    const number = Number(btn.dataset.floor);
+                    btn.classList.toggle("active", number === activeFloor);
+                    btn.setAttribute("aria-current", number === activeFloor ? "true" : "false");
+                });
+
+                const label = document.getElementById("currentFloorLabel");
+                if (label) label.textContent = "Floor " + activeFloor;
+            }
+
+            window.showBuildingFloor = function (floorNumber) {
+                activeFloor = Number(floorNumber) || 1;
+                refreshFloorNavigation();
+
+                const building = document.getElementById("building");
+                if (building) {
+                    building.classList.remove("floor-switching");
+                    void building.offsetWidth;
+                    building.classList.add("floor-switching");
+                }
+            };
+
+            function startFloorObserver() {
+                if (floorObserverStarted) return;
+                floorObserverStarted = true;
+
+                const building = document.getElementById("building");
+                if (!building) return;
+
+                const observer = new MutationObserver(function () {
+                    refreshFloorNavigation();
+                });
+
+                observer.observe(building, {
+                    childList: true,
+                    subtree: true
+                });
+
+                refreshFloorNavigation();
+            }
+
+            function syncResidentsBodyMode() {
+                const residents = document.getElementById("residentsPage");
+                const visible = !!residents && getComputedStyle(residents).display !== "none";
+                document.body.classList.toggle("residents-floor-mode", visible);
+            }
+
+            function initFloorNavigation() {
+                startFloorObserver();
+                syncResidentsBodyMode();
+                setTimeout(refreshFloorNavigation, 150);
+                setTimeout(refreshFloorNavigation, 500);
+                setTimeout(refreshFloorNavigation, 1200);
+                setTimeout(syncResidentsBodyMode, 200);
+                setTimeout(syncResidentsBodyMode, 700);
+            }
+
+
+            const pageVisibilityObserver = new MutationObserver(syncResidentsBodyMode);
+            pageVisibilityObserver.observe(document.body, { attributes: true, subtree: true, attributeFilter: ["style", "class"] });
+
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", initFloorNavigation);
+            } else {
+                initFloorNavigation();
+            }
+        })();
+    </script>
+
 
 
 </body>
