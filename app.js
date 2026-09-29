@@ -7353,6 +7353,10 @@ function closeRequestModal() {
    SAVE REQUEST
    ========================================================= */
 
+/* =========================================================
+   SAVE REQUEST
+   ========================================================= */
+
 async function saveRequest() {
 
     if (!canWriteRequests()) {
@@ -7364,25 +7368,20 @@ async function saveRequest() {
         return;
     }
 
-
     try {
 
         requireFirebase();
-
         requireCompany();
-
 
         const title =
             $("requestTitle")
                 ?.value
                 .trim();
 
-
         const description =
             $("requestDescription")
                 ?.value
                 .trim();
-
 
         if (!title) {
 
@@ -7395,7 +7394,6 @@ async function saveRequest() {
             return;
         }
 
-
         if (!description) {
 
             showToast(
@@ -7407,85 +7405,15 @@ async function saveRequest() {
             return;
         }
 
-
-        const requestData = {
-
-            title:
-
-                title,
+        const selectedStatus =
+            $("requestStatus")?.value ||
+            "pending";
 
 
-            type:
+        /* =====================================================
+           EDIT REQUEST
+           ===================================================== */
 
-                $("requestType")?.value ||
-                "Maintenance",
-
-
-            priority:
-
-                $("requestPriority")?.value ||
-                "medium",
-
-
-            status:
-
-                $("requestStatus")?.value ||
-                "pending",
-
-
-            requestedBy:
-
-                $("requestRequestedBy")
-                    ?.value
-                    .trim() ||
-                "",
-
-
-            floor:
-
-                $("requestFloor")
-                    ?.value
-                    .trim() ||
-                "",
-
-
-            apartment:
-
-                $("requestApartment")
-                    ?.value
-                    .trim() ||
-                "",
-
-
-            room:
-
-                $("requestRoom")
-                    ?.value
-                    .trim() ||
-                "",
-
-
-            dueDate:
-
-                $("requestDueDate")
-                    ?.value ||
-                "",
-
-
-            description:
-
-                description,
-
-
-            updatedAt:
-
-                serverTimestamp()
-        };
-
-
-        /*
-         * EDIT
-         */
         if (editingRequestId) {
 
             const existingRequest =
@@ -7494,7 +7422,6 @@ async function saveRequest() {
                         r.id ===
                         editingRequestId
                 );
-
 
             if (!existingRequest) {
 
@@ -7505,45 +7432,148 @@ async function saveRequest() {
                 return;
             }
 
-await updateDoc(
-    requestDoc(existingRequest),
-    {
-        status:
-            $("requestStatus")?.value ||
-            existingRequest.status ||
-            "pending",
 
-        updatedAt:
-            serverTimestamp(),
+            /*
+             * IMPORTANT:
+             *
+             * When user selects RESOLVED,
+             * DO NOT update Firestore yet.
+             *
+             * Open Expense module first.
+             */
 
-        updatedBy:
-            auth.currentUser?.uid || ""
-    }
-);
+            if (
+                selectedStatus === "resolved" &&
+                String(
+                    existingRequest.status || ""
+                ).toLowerCase() !== "resolved"
+            ) {
+
+                closeRequestModal();
+
+                setTimeout(() => {
+
+                    openRequestExpenseModal(
+                        existingRequest
+                    );
+
+                }, 150);
+
+                return;
+            }
+
+
+            await updateDoc(
+
+                requestDoc(
+                    existingRequest
+                ),
+
+                {
+
+                    status:
+                        selectedStatus,
+
+                    updatedAt:
+                        serverTimestamp(),
+
+                    updatedBy:
+                        auth.currentUser?.uid ||
+                        ""
+
+                }
+            );
 
 
             showToast(
                 "Request updated successfully."
             );
 
+        }
 
-        } else {
+        /* =====================================================
+           CREATE REQUEST
+           ===================================================== */
 
-            /*
-             * CREATE
-             *
-             * يتم الحفظ دائمًا في:
-             *
-             * companies/foyer-nohad/request
-             */
+        else {
 
-            requestData.createdAt =
-                serverTimestamp();
+            const requestData = {
 
+                title:
 
-            requestData.createdBy =
-                auth.currentUser?.uid ||
-                "";
+                    title,
+
+                type:
+
+                    $("requestType")?.value ||
+                    "Maintenance",
+
+                priority:
+
+                    $("requestPriority")?.value ||
+                    "medium",
+
+                status:
+
+                    selectedStatus,
+
+                requestedBy:
+
+                    $("requestRequestedBy")
+                        ?.value
+                        .trim() ||
+                    "",
+
+                floor:
+
+                    $("requestFloor")
+                        ?.value
+                        .trim() ||
+                    "",
+
+                apartment:
+
+                    $("requestApartment")
+                        ?.value
+                        .trim() ||
+                    "",
+
+                room:
+
+                    $("requestRoom")
+                        ?.value
+                        .trim() ||
+                    "",
+
+                dueDate:
+
+                    $("requestDueDate")
+                        ?.value ||
+                    "",
+
+                description:
+
+                    description,
+
+                createdAt:
+
+                    serverTimestamp(),
+
+                updatedAt:
+
+                    serverTimestamp(),
+
+                createdBy:
+
+                    auth.currentUser?.uid ||
+                    "",
+
+                updatedBy:
+
+                    auth.currentUser?.uid ||
+                    ""
+
+            };
 
 
             await addDoc(
@@ -7551,25 +7581,25 @@ await updateDoc(
                 getRequestsCollection(),
 
                 requestData
+
             );
 
 
             showToast(
                 "Request created successfully."
             );
+
+            closeRequestModal();
         }
 
+    }
 
-        closeRequestModal();
-
-
-    } catch (error) {
+    catch (error) {
 
         console.error(
             "saveRequest:",
             error
         );
-
 
         showToast(
             firebaseErrorMessage(
@@ -7578,8 +7608,6 @@ await updateDoc(
         );
     }
 }
-
-
 /* =========================================================
    REQUEST STATUS
    ========================================================= */
@@ -7637,9 +7665,11 @@ function getRequestStatus(
    RESOLVE REQUEST
    ========================================================= */
 
-async function resolveRequest(
-    requestId
-) {
+/* =========================================================
+   RESOLVE REQUEST
+   ========================================================= */
+
+function resolveRequest(requestId) {
 
     if (!canWriteRequests()) {
 
@@ -7653,7 +7683,8 @@ async function resolveRequest(
 
     const request =
         requests.find(
-            r => r.id === requestId
+            r =>
+                r.id === requestId
         );
 
 
@@ -7669,17 +7700,13 @@ async function resolveRequest(
 
     const status =
         String(
-            request.status ||
-            ""
+            request.status || ""
         ).toLowerCase();
 
 
     if (
-
         status === "resolved" ||
-
         status === "completed"
-
     ) {
 
         showToast(
@@ -7690,23 +7717,630 @@ async function resolveRequest(
     }
 
 
-    const confirmed =
-        window.confirm(
-            `Mark "${request.title || "this request"}" as Resolved?`
-        );
+    /*
+     * Do NOT resolve here.
+     *
+     * Open the Expense module.
+     */
+
+    openRequestExpenseModal(
+        request
+    );
+}
+/* =========================================================
+   REQUEST RESOLUTION EXPENSE MODULE
+   ========================================================= */
+
+let requestPendingExpense = null;
 
 
-    if (!confirmed) {
+/* =========================================================
+   CREATE EXPENSE MODAL
+   ========================================================= */
+
+function createRequestExpenseModal() {
+
+    if ($("requestExpenseModal")) {
         return;
     }
 
 
+    const modal =
+        document.createElement("div");
+
+    modal.id =
+        "requestExpenseModal";
+
+    modal.className =
+        "request-expense-modal";
+
+
+    modal.innerHTML = `
+
+        <div class="request-expense-overlay"
+             onclick="closeRequestExpenseModal()">
+        </div>
+
+
+        <div class="request-expense-dialog">
+
+            <div class="request-expense-header">
+
+                <div>
+
+                    <span class="request-expense-kicker">
+                        REQUEST COMPLETION
+                    </span>
+
+                    <h2>
+                        Add Expense
+                    </h2>
+
+                    <p>
+                        Enter the expense cost before marking
+                        this request as Resolved.
+                    </p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="request-expense-close"
+                    onclick="closeRequestExpenseModal()">
+
+                    <i class="fa-solid fa-xmark"></i>
+
+                </button>
+
+            </div>
+
+
+            <div class="request-expense-request-info">
+
+                <div>
+
+                    <span>
+                        REQUEST
+                    </span>
+
+                    <strong
+                        id="requestExpenseRequestNo">
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        TITLE
+                    </span>
+
+                    <strong
+                        id="requestExpenseRequestTitle">
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="request-expense-form">
+
+
+                <!-- CATEGORY -->
+
+                <div class="request-expense-field">
+
+                    <label>
+                        Expense Category
+                    </label>
+
+                    <select
+                        id="requestExpenseCategory">
+
+                        <option value="Maintenance">
+                            Maintenance
+                        </option>
+
+                        <option value="Utilities">
+                            Utilities
+                        </option>
+
+                        <option value="Salaries">
+                            Salaries
+                        </option>
+
+                        <option value="Cleaning">
+                            Cleaning
+                        </option>
+
+                        <option value="Other">
+                            Other
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- AMOUNT -->
+
+                <div class="request-expense-field">
+
+                    <label>
+                        Expense Amount
+                    </label>
+
+                    <div class="request-expense-amount-wrapper">
+
+                        <input
+                            type="number"
+                            id="requestExpenseAmount"
+                            min="0.01"
+                            max="10000000"
+                            step="0.01"
+                            placeholder="Enter amount"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <!-- DATE -->
+
+                <div class="request-expense-field">
+
+                    <label>
+                        Expense Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="requestExpenseDate"
+                    >
+
+                </div>
+
+
+                <!-- DESCRIPTION -->
+
+                <div
+                    class="request-expense-field request-expense-full">
+
+                    <label>
+                        Expense Description
+                    </label>
+
+                    <textarea
+                        id="requestExpenseDescription"
+                        maxlength="250"
+                        rows="4"
+                        placeholder="Describe the expense...">
+                    </textarea>
+
+                </div>
+
+
+            </div>
+
+
+            <div class="request-expense-footer">
+
+                <button
+                    type="button"
+                    class="request-expense-cancel"
+                    onclick="closeRequestExpenseModal()">
+
+                    Cancel
+
+                </button>
+
+
+                <button
+                    type="button"
+                    id="requestExpenseSaveBtn"
+                    class="request-expense-save"
+                    onclick="saveRequestExpenseAndResolve()">
+
+                    <i class="fa-solid fa-check"></i>
+
+                    Save Expense & Resolve
+
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+}
+
+
+/* =========================================================
+   OPEN EXPENSE MODULE
+   ========================================================= */
+
+function openRequestExpenseModal(request) {
+
+    if (!request) {
+
+        showToast(
+            "Request not found."
+        );
+
+        return;
+    }
+
+
+    requestPendingExpense =
+        request;
+
+
+    createRequestExpenseModal();
+
+
+    const modal =
+        $("requestExpenseModal");
+
+
+    const requestNo =
+        $("requestExpenseRequestNo");
+
+
+    const requestTitle =
+        $("requestExpenseRequestTitle");
+
+
+    const amount =
+        $("requestExpenseAmount");
+
+
+    const category =
+        $("requestExpenseCategory");
+
+
+    const date =
+        $("requestExpenseDate");
+
+
+    const description =
+        $("requestExpenseDescription");
+
+
+    if (requestNo) {
+
+        requestNo.textContent =
+            "REQ-" +
+            request.id
+                .slice(-6)
+                .toUpperCase();
+
+    }
+
+
+    if (requestTitle) {
+
+        requestTitle.textContent =
+            request.title ||
+            "Untitled Request";
+
+    }
+
+
+    if (amount) {
+
+        amount.value = "";
+
+    }
+
+
+    if (category) {
+
+        category.value =
+            "Maintenance";
+
+    }
+
+
+    if (date) {
+
+        date.value =
+            new Date()
+                .toISOString()
+                .split("T")[0];
+
+    }
+
+
+    if (description) {
+
+        description.value =
+            `Expense for request: ${
+                request.title ||
+                "Request"
+            }`;
+
+    }
+
+
+    if (modal) {
+
+        modal.style.display =
+            "flex";
+
+        document.body.classList.add(
+            "modal-open"
+        );
+
+        setTimeout(() => {
+
+            amount?.focus();
+
+        }, 100);
+
+    }
+}
+
+
+/* =========================================================
+   CLOSE EXPENSE MODULE
+   ========================================================= */
+
+window.closeRequestExpenseModal = function () {
+    const modal =
+        $("requestExpenseModal");
+
+
+    if (modal) {
+
+        modal.style.display =
+            "none";
+
+    }
+
+
+    document.body.classList.remove(
+        "modal-open"
+    );
+
+
+    requestPendingExpense =
+        null;
+}
+
+
+/* =========================================================
+   SAVE EXPENSE + RESOLVE REQUEST
+   ========================================================= */
+
+window.saveRequestExpenseAndResolve = async function () {
+    if (!requestPendingExpense) {
+
+        showToast(
+            "Request information is missing."
+        );
+
+        return;
+    }
+
+
+    const request =
+        requestPendingExpense;
+
+
     try {
+
+        /*
+         * Use the same permission used
+         * by the existing Expenses module.
+         */
+
+        requireRole(
+            "owner",
+            "admin",
+            "staff"
+        );
+
 
         requireFirebase();
 
         requireCompany();
 
+
+        const category =
+            $("requestExpenseCategory")
+                ?.value ||
+            "";
+
+
+        const amount =
+            Number(
+                $("requestExpenseAmount")
+                    ?.value ||
+                0
+            );
+
+
+        const date =
+            $("requestExpenseDate")
+                ?.value ||
+            "";
+
+
+        const description =
+            $("requestExpenseDescription")
+                ?.value
+                .trim() ||
+            "";
+
+
+        const allowedCategories = [
+
+            "Maintenance",
+
+            "Utilities",
+
+            "Salaries",
+
+            "Cleaning",
+
+            "Other"
+
+        ];
+
+
+        /* =====================================================
+           VALIDATION
+           ===================================================== */
+
+        if (
+            !allowedCategories.includes(
+                category
+            )
+        ) {
+
+            showToast(
+                "Please select a valid expense category."
+            );
+
+            return;
+        }
+
+
+        if (
+            !Number.isFinite(amount) ||
+            amount <= 0 ||
+            amount > 10000000
+        ) {
+
+            showToast(
+                "Please enter a valid expense amount."
+            );
+
+            $("requestExpenseAmount")
+                ?.focus();
+
+            return;
+        }
+
+
+        if (
+            !/^\d{4}-\d{2}-\d{2}$/
+                .test(date)
+        ) {
+
+            showToast(
+                "Please select a valid expense date."
+            );
+
+            return;
+        }
+
+
+        if (
+            description.length > 250
+        ) {
+
+            showToast(
+                "Expense description must be 250 characters or fewer."
+            );
+
+            return;
+        }
+
+
+        const saveButton =
+            $("requestExpenseSaveBtn");
+
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                true;
+
+            saveButton.innerHTML = `
+
+                <i class="fa-solid fa-spinner fa-spin"></i>
+
+                Saving...
+
+            `;
+
+        }
+
+
+        /* =====================================================
+           1. CREATE EXPENSE
+           ===================================================== */
+
+        const expenseRef =
+            await addDoc(
+
+                expenseCollection(),
+
+                {
+
+                    date:
+
+                        date,
+
+                    category:
+
+                        category,
+
+                    description:
+
+                        description,
+
+                    amount:
+
+                        amount,
+
+                    /*
+                     * Link expense to request
+                     */
+
+                    requestId:
+
+                        request.id,
+
+                    requestNumber:
+
+                        "REQ-" +
+                        request.id
+                            .slice(-6)
+                            .toUpperCase(),
+
+                    requestTitle:
+
+                        request.title ||
+                        "",
+
+                    createdAt:
+
+                        serverTimestamp(),
+
+                    createdBy:
+
+                        auth.currentUser?.uid ||
+                        ""
+
+                }
+
+            );
+
+
+        /* =====================================================
+           2. MARK REQUEST AS RESOLVED
+           ===================================================== */
 
         await updateDoc(
 
@@ -7717,47 +8351,157 @@ async function resolveRequest(
             {
 
                 status:
+
                     "resolved",
 
                 resolvedAt:
+
                     serverTimestamp(),
 
                 resolvedBy:
+
                     auth.currentUser?.uid ||
                     "",
 
+                resolvedExpenseId:
+
+                    expenseRef.id,
+
+                resolvedExpenseAmount:
+
+                    amount,
+
+                resolvedExpenseCategory:
+
+                    category,
+
                 updatedAt:
+
                     serverTimestamp(),
 
                 updatedBy:
+
                     auth.currentUser?.uid ||
                     ""
 
             }
+
         );
+
+
+        /* =====================================================
+           3. UPDATE LOCAL REQUEST
+           ===================================================== */
+
+        const localRequest =
+            requests.find(
+                r =>
+                    r.id ===
+                    request.id
+            );
+
+
+        if (localRequest) {
+
+            localRequest.status =
+                "resolved";
+
+            localRequest.resolvedAt =
+                new Date();
+
+            localRequest.resolvedBy =
+                auth.currentUser?.uid ||
+                "";
+
+            localRequest.resolvedExpenseId =
+                expenseRef.id;
+
+            localRequest.resolvedExpenseAmount =
+                amount;
+
+            localRequest.resolvedExpenseCategory =
+                category;
+
+            localRequest.updatedAt =
+                new Date();
+
+        }
+
+
+        /* =====================================================
+           4. CLOSE MODAL
+           ===================================================== */
+
+        closeRequestExpenseModal();
+
+
+        /* =====================================================
+           5. REFRESH REQUESTS
+           ===================================================== */
+
+        renderRequests();
+
+
+        /*
+         * Refresh finance dashboard if available.
+         */
+
+        if (
+            typeof updateFinanceDashboard ===
+            "function"
+        ) {
+
+            updateFinanceDashboard();
+
+        }
 
 
         showToast(
-            "✓ Request marked as Resolved."
+            "✓ Expense saved and request marked as Resolved."
         );
 
 
-    } catch (error) {
+    }
+
+    catch (error) {
 
         console.error(
-            "resolveRequest:",
+            "saveRequestExpenseAndResolve:",
             error
         );
 
 
         showToast(
+
             firebaseErrorMessage(
                 error
             )
-        );
-    }
-}
 
+        );
+
+
+        const saveButton =
+            $("requestExpenseSaveBtn");
+
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                false;
+
+            saveButton.innerHTML = `
+
+                <i class="fa-solid fa-check"></i>
+
+                Save Expense & Resolve
+
+            `;
+
+        }
+
+    }
+
+}
 
 /* =========================================================
    VIEW REQUEST
