@@ -8481,3 +8481,21 @@ body:not(.residents-floor-mode) {
     }
 
 }
+.available-kpi-card {
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.available-kpi-card:hover {
+    transform: translateY(-2px);
+}
+
+.kpi-add-customer {
+    margin-top: 14px;
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px;
+    background: #2563eb;
+    color: white;
+    font-weight: 600;
+}
