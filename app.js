@@ -732,15 +732,12 @@ function applyRoleUI() {
                     : "none";
         });
 
-
-    /*
-     * Payment history
-     */
-    document
-        .querySelectorAll(
-            "[data-payment-history-only]"
-        )
-        .forEach(el => {
+document
+    .querySelectorAll(
+        "[data-payment-history-only]"
+    )
+    .forEach(
+        el => {
 
             el.style.display =
                 hasPermission(
@@ -748,8 +745,9 @@ function applyRoleUI() {
                 )
                     ? ""
                     : "none";
-        });
 
+        }
+    );
 
     /*
      * Add expense
@@ -2072,19 +2070,39 @@ async function startRealtimeData() {
     /*
      * Payment History
      */
+if (
+    hasPermission(
+        "paymentHistory.read"
+    )
+) {
+
+    await loadPaymentHistory();
+
+    renderPaymentHistoryMonthSelect();
+
     if (
-        hasPermission(
-            "paymentHistory.read"
-        )
+        selectedPaymentHistoryMonth
     ) {
 
-        await loadPaymentHistory();
+        renderPaymentHistoryKPIs(
+            selectedPaymentHistoryMonth
+        );
 
-    } else {
+        renderPaymentHistoryCustomers(
+            selectedPaymentHistoryMonth
+        );
 
-        paymentHistory = {};
     }
 
+    renderPaymentHistoryMonthlyTable();
+
+    renderPaymentHistoryChart();
+
+} else {
+
+    paymentHistory = {};
+
+}
 
     /*
      * Monthly reset only Owner/Admin
