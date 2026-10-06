@@ -2115,21 +2115,26 @@ async function startRealtimeData() {
    PAYMENT HISTORY LOAD
    ========================================================= */
 
+/* =========================================================
+   PAYMENT HISTORY LOAD
+   ========================================================= */
+
 async function loadPaymentHistory() {
 
     requireFirebase();
-
 
     const snapshot =
         await getDocs(
 
             query(
                 paymentHistoryCollection(),
+
                 orderBy(
                     "monthKey",
                     "desc"
                 )
             )
+
         );
 
 
@@ -2142,13 +2147,1554 @@ async function loadPaymentHistory() {
             const data =
                 snap.data();
 
-            paymentHistory[
+
+            const monthKey =
                 data.monthKey ||
-                snap.id
-            ] =
-                data.records || [];
+                snap.id;
+
+
+            paymentHistory[
+                monthKey
+            ] = {
+
+                monthKey,
+
+                records:
+                    Array.isArray(
+                        data.records
+                    )
+                        ? data.records
+                        : [],
+
+                totalPaid:
+                    Number(
+                        data.totalPaid ||
+                        0
+                    ),
+
+                totalRevenue:
+                    Number(
+                        data.totalRevenue ||
+                        0
+                    ),
+
+                updatedAt:
+                    data.updatedAt ||
+                    null
+
+            };
+
         }
     );
+
+}
+/* =========================================================
+   PAYMENT HISTORY DASHBOARD
+   ========================================================= */
+
+let selectedPaymentHistoryMonth = null;
+
+
+/* =========================================================
+   MONTH LABEL
+   ========================================================= */
+
+function formatMonthLabel(monthKey) {
+
+    if (!monthKey) {
+        return "-";
+    }
+
+
+    const parts =
+        String(monthKey)
+            .split("-");
+
+
+    if (parts.length !== 2) {
+        return monthKey;
+    }
+
+
+    const year =
+        Number(parts[0]);
+
+    const month =
+        Number(parts[1]);
+
+
+    if (
+        !year ||
+        !month
+    ) {
+
+        return monthKey;
+
+    }
+
+
+    return new Date(
+        year,
+        month - 1,
+        1
+    ).toLocaleDateString(
+        "en-US",
+        {
+            month: "long",
+            year: "numeric"
+        }
+    );
+
+}
+
+
+/* =========================================================
+   GET EXPENSES FOR MONTH
+   ========================================================= */
+
+function getExpensesForMonth(
+    monthKey
+) {
+
+    if (!monthKey) {
+        return 0;
+    }
+
+
+    return expenses.reduce(
+        (
+            total,
+            expense
+        ) => {
+
+            if (!expense.date) {
+                return total;
+            }
+
+
+            const expenseMonth =
+                String(
+                    expense.date
+                ).slice(
+                    0,
+                    7
+                );
+
+
+            if (
+                expenseMonth !==
+                monthKey
+            ) {
+
+                return total;
+
+            }
+
+
+            return (
+                total +
+                Number(
+                    expense.amount ||
+                    0
+                )
+            );
+
+        },
+        0
+    );
+
+}
+
+
+/* =========================================================
+   GET MONTH REVENUE
+   ========================================================= */
+
+function getPaymentHistoryRevenue(
+    monthKey
+) {
+
+    const data =
+        paymentHistory[
+            monthKey
+        ];
+
+
+    if (!data) {
+        return 0;
+    }
+
+
+    /*
+     * New structure
+     */
+
+    if (
+        typeof data ===
+        "object" &&
+        !Array.isArray(data)
+    ) {
+
+        if (
+            Number.isFinite(
+                Number(
+                    data.totalRevenue
+                )
+            )
+        ) {
+
+            return Number(
+                data.totalRevenue
+            );
+
+        }
+
+
+        const records =
+            Array.isArray(
+                data.records
+            )
+                ? data.records
+                : [];
+
+
+        return records.reduce(
+            (
+                total,
+                customer
+            ) => {
+
+                return (
+                    total +
+                    Number(
+                        customer.bookingPrice ||
+                        getBookingPrice(
+                            customer
+                        ) ||
+                        MONTHLY_RENT
+                    )
+                );
+
+            },
+            0
+        );
+
+    }
+
+
+    /*
+     * Legacy structure
+     */
+
+    if (
+        Array.isArray(data)
+    ) {
+
+        return data.reduce(
+            (
+                total,
+                customer
+            ) => {
+
+                return (
+                    total +
+                    Number(
+                        customer.bookingPrice ||
+                        MONTHLY_RENT
+                    )
+                );
+
+            },
+            0
+        );
+
+    }
+
+
+    return 0;
+
+}
+
+
+/* =========================================================
+   GET MONTH RECORDS
+   ========================================================= */
+
+function getPaymentHistoryRecords(
+    monthKey
+) {
+
+    const data =
+        paymentHistory[
+            monthKey
+        ];
+
+
+    if (!data) {
+        return [];
+    }
+
+
+    if (
+        Array.isArray(data)
+    ) {
+
+        return data;
+
+    }
+
+
+    return Array.isArray(
+        data.records
+    )
+        ? data.records
+        : [];
+
+}
+
+
+/* =========================================================
+   PAYMENT RATE
+   ========================================================= */
+
+function getPaymentRateForMonth(
+    monthKey
+) {
+
+    const records =
+        getPaymentHistoryRecords(
+            monthKey
+        );
+
+
+    const totalBedsOrBookings =
+        totalBeds;
+
+
+    if (
+        totalBedsOrBookings <= 0
+    ) {
+
+        return 0;
+
+    }
+
+
+    return Math.min(
+        100,
+        Math.round(
+            (
+                records.length /
+                totalBedsOrBookings
+            ) *
+            100
+        )
+    );
+
+}
+
+
+/* =========================================================
+   RENDER MONTH SELECT
+   ========================================================= */
+
+function renderPaymentHistoryMonthSelect() {
+
+    const select =
+        $("paymentHistoryMonth");
+
+
+    if (!select) {
+        return;
+    }
+
+
+    const months =
+        Object.keys(
+            paymentHistory
+        )
+            .sort()
+            .reverse();
+
+
+    select.innerHTML = "";
+
+
+    if (
+        months.length === 0
+    ) {
+
+        select.innerHTML = `
+            <option value="">
+                No payment history
+            </option>
+        `;
+
+        selectedPaymentHistoryMonth =
+            null;
+
+        return;
+
+    }
+
+
+    if (
+        !selectedPaymentHistoryMonth ||
+        !months.includes(
+            selectedPaymentHistoryMonth
+        )
+    ) {
+
+        selectedPaymentHistoryMonth =
+            months[0];
+
+    }
+
+
+    months.forEach(
+        month => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                month;
+
+
+            option.textContent =
+                formatMonthLabel(
+                    month
+                );
+
+
+            option.selected =
+                month ===
+                selectedPaymentHistoryMonth;
+
+
+            select.appendChild(
+                option
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   RENDER MONTHLY KPI
+   ========================================================= */
+
+function renderPaymentHistoryKPIs(
+    monthKey
+) {
+
+    const revenue =
+        getPaymentHistoryRevenue(
+            monthKey
+        );
+
+
+    const expensesTotal =
+        getExpensesForMonth(
+            monthKey
+        );
+
+
+    const profit =
+        revenue -
+        expensesTotal;
+
+
+    const records =
+        getPaymentHistoryRecords(
+            monthKey
+        );
+
+
+    const paymentRate =
+        getPaymentRateForMonth(
+            monthKey
+        );
+
+
+    if ($("phRevenue")) {
+
+        $("phRevenue").innerText =
+            formatCurrency(
+                revenue
+            );
+
+    }
+
+
+    if ($("phExpenses")) {
+
+        $("phExpenses").innerText =
+            formatCurrency(
+                expensesTotal
+            );
+
+    }
+
+
+    if ($("phProfit")) {
+
+        $("phProfit").innerText =
+            formatCurrency(
+                profit
+            );
+
+
+        $("phProfit").className =
+            profit >= 0
+                ? "ph-profit-positive"
+                : "ph-profit-negative";
+
+    }
+
+
+    if ($("phPaidClients")) {
+
+        $("phPaidClients").innerText =
+            records.length;
+
+    }
+
+
+    if ($("phPaymentRate")) {
+
+        $("phPaymentRate").innerText =
+            `${paymentRate}% payment rate`;
+
+    }
+
+
+    if ($("phSelectedPaidCount")) {
+
+        $("phSelectedPaidCount").innerText =
+            records.length;
+
+    }
+
+
+    if ($("phSelectedMonthLabel")) {
+
+        $("phSelectedMonthLabel").innerText =
+            formatMonthLabel(
+                monthKey
+            );
+
+    }
+
+}
+
+
+/* =========================================================
+   RENDER MONTHLY SUMMARY
+   ========================================================= */
+
+function renderPaymentHistoryMonthlyTable() {
+
+    const body =
+        $("paymentHistoryMonthlyBody");
+
+
+    if (!body) {
+        return;
+    }
+
+
+    body.innerHTML = "";
+
+
+    const months =
+        Object.keys(
+            paymentHistory
+        )
+            .sort()
+            .reverse();
+
+
+    if (
+        months.length === 0
+    ) {
+
+        body.innerHTML = `
+            <tr>
+                <td
+                    colspan="7"
+                    class="ph-empty"
+                >
+                    <i class="fa-solid fa-chart-line"></i>
+
+                    <div>
+                        No payment history available yet.
+                    </div>
+
+                </td>
+            </tr>
+        `;
+
+        return;
+
+    }
+
+
+    months.forEach(
+        monthKey => {
+
+            const revenue =
+                getPaymentHistoryRevenue(
+                    monthKey
+                );
+
+
+            const expense =
+                getExpensesForMonth(
+                    monthKey
+                );
+
+
+            const profit =
+                revenue -
+                expense;
+
+
+            const records =
+                getPaymentHistoryRecords(
+                    monthKey
+                );
+
+
+            const rate =
+                getPaymentRateForMonth(
+                    monthKey
+                );
+
+
+            const tr =
+                document.createElement(
+                    "tr"
+                );
+
+
+            tr.dataset.month =
+                monthKey;
+
+
+            tr.innerHTML = `
+
+                <td>
+
+                    <button
+                        class="ph-month-link"
+                        onclick="selectPaymentHistoryMonth('${escapeHTML(monthKey)}')"
+                    >
+
+                        <i class="fa-regular fa-calendar"></i>
+
+                        ${escapeHTML(
+                            formatMonthLabel(
+                                monthKey
+                            )
+                        )}
+
+                    </button>
+
+                </td>
+
+
+                <td>
+
+                    <span class="ph-number-badge">
+
+                        ${records.length}
+
+                    </span>
+
+                </td>
+
+
+                <td>
+
+                    <strong class="ph-money-revenue">
+
+                        ${formatCurrency(
+                            revenue
+                        )}
+
+                    </strong>
+
+                </td>
+
+
+                <td>
+
+                    <strong class="ph-money-expense">
+
+                        ${formatCurrency(
+                            expense
+                        )}
+
+                    </strong>
+
+                </td>
+
+
+                <td>
+
+                    <strong
+                        class="${
+                            profit >= 0
+                                ? "ph-money-profit"
+                                : "ph-money-loss"
+                        }"
+                    >
+
+                        ${formatCurrency(
+                            profit
+                        )}
+
+                    </strong>
+
+                </td>
+
+
+                <td>
+
+                    <div class="ph-progress">
+
+                        <div
+                            class="ph-progress-bar"
+                            style="
+                                width:${rate}%;
+                            "
+                        ></div>
+
+                    </div>
+
+                    <span class="ph-rate">
+
+                        ${rate}%
+
+                    </span>
+
+                </td>
+
+
+                <td>
+
+                    ${
+                        profit >= 0
+
+                            ? `
+                                <span class="ph-status positive">
+                                    <i class="fa-solid fa-arrow-up"></i>
+                                    Profitable
+                                </span>
+                              `
+
+                            : `
+                                <span class="ph-status negative">
+                                    <i class="fa-solid fa-arrow-down"></i>
+                                    Loss
+                                </span>
+                              `
+                    }
+
+                </td>
+
+            `;
+
+
+            body.appendChild(
+                tr
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   SELECT MONTH
+   ========================================================= */
+
+function selectPaymentHistoryMonth(
+    monthKey
+) {
+
+    selectedPaymentHistoryMonth =
+        monthKey;
+
+
+    const select =
+        $("paymentHistoryMonth");
+
+
+    if (select) {
+
+        select.value =
+            monthKey;
+
+    }
+
+
+    renderPaymentHistoryKPIs(
+        monthKey
+    );
+
+
+    renderPaymentHistoryCustomers(
+        monthKey
+    );
+
+}
+
+
+/* =========================================================
+   RENDER PAID CUSTOMERS
+   ========================================================= */
+
+function renderPaymentHistoryCustomers(
+    monthKey
+) {
+
+    const body =
+        $("paymentHistoryCustomersBody");
+
+
+    if (!body) {
+        return;
+    }
+
+
+    body.innerHTML = "";
+
+
+    const records =
+        getPaymentHistoryRecords(
+            monthKey
+        );
+
+
+    if (
+        records.length === 0
+    ) {
+
+        body.innerHTML = `
+
+            <tr>
+
+                <td
+                    colspan="7"
+                    class="ph-empty"
+                >
+
+                    <i class="fa-solid fa-users-slash"></i>
+
+                    <div>
+                        No paid customers for this month.
+                    </div>
+
+                </td>
+
+            </tr>
+
+        `;
+
+        return;
+
+    }
+
+
+    records.forEach(
+        customer => {
+
+            const primaryIndex =
+                Number(
+                    customer.primaryIndex ??
+                    customer.index ??
+                    0
+                );
+
+
+            const location =
+                getLocation(
+                    primaryIndex
+                );
+
+
+            const price =
+                Number(
+                    customer.bookingPrice ||
+                    getBookingPrice(
+                        customer
+                    ) ||
+                    MONTHLY_RENT
+                );
+
+
+            const paidDate =
+                customer.paymentDate ||
+                customer.paymentUpdatedAt ||
+                customer.updatedAt ||
+                customer.date ||
+                null;
+
+
+            let formattedDate =
+                "-";
+
+
+            if (
+                typeof paidDate ===
+                "string"
+            ) {
+
+                formattedDate =
+                    paidDate
+                        .slice(
+                            0,
+                            10
+                        );
+
+            }
+
+
+            const tr =
+                document.createElement(
+                    "tr"
+                );
+
+
+            tr.innerHTML = `
+
+                <td>
+
+                    <div class="ph-customer">
+
+                        <div class="ph-avatar">
+
+                            <i class="fa-solid fa-user"></i>
+
+                        </div>
+
+                        <div>
+
+                            <strong>
+
+                                ${escapeHTML(
+                                    customer.name ||
+                                    "Customer"
+                                )}
+
+                            </strong>
+
+                            <small>
+
+                                Client #${
+                                    1000 +
+                                    Number(
+                                        customer.index ||
+                                        0
+                                    )
+                                }
+
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </td>
+
+
+                <td>
+
+                    <span class="ph-phone">
+
+                        ${escapeHTML(
+                            customer.phone ||
+                            "-"
+                        )}
+
+                    </span>
+
+                </td>
+
+
+                <td>
+
+                    <span class="location-badge">
+
+                        Floor ${
+                            location.floor
+                        }
+
+                        • Apt ${
+                            location.apartment
+                        }
+
+                        • Room ${
+                            location.room
+                        }
+
+                    </span>
+
+                </td>
+
+
+                <td>
+
+                    <strong>
+
+                        ${
+                            customer.bookingType ===
+                            "full_room"
+
+                                ? "Beds 1 & 2"
+
+                                : `Bed ${
+                                    location.bed
+                                }`
+                        }
+
+                    </strong>
+
+                </td>
+
+
+                <td>
+
+                    <span class="ph-paid-pill">
+
+                        <i class="fa-solid fa-check"></i>
+
+                        PAID
+
+                    </span>
+
+                </td>
+
+
+                <td>
+
+                    ${escapeHTML(
+                        formattedDate
+                    )}
+
+                </td>
+
+
+                <td>
+
+                    <strong
+                        class="ph-money-revenue"
+                    >
+
+                        ${formatCurrency(
+                            price
+                        )}
+
+                    </strong>
+
+                </td>
+
+            `;
+
+
+            body.appendChild(
+                tr
+            );
+
+        }
+    );
+
+
+    filterPaymentHistoryCustomers();
+
+}
+
+
+/* =========================================================
+   FILTER CUSTOMERS
+   ========================================================= */
+
+function filterPaymentHistoryCustomers() {
+
+    const input =
+        $("paymentHistorySearch");
+
+
+    const search =
+        (
+            input?.value ||
+            ""
+        )
+            .toLowerCase()
+            .trim();
+
+
+    document
+        .querySelectorAll(
+            "#paymentHistoryCustomersBody tr"
+        )
+        .forEach(
+            row => {
+
+                const match =
+                    row.innerText
+                        .toLowerCase()
+                        .includes(
+                            search
+                        );
+
+
+                row.style.display =
+                    match
+                        ? ""
+                        : "none";
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   REFRESH DASHBOARD
+   ========================================================= */
+
+async function refreshPaymentHistoryDashboard() {
+
+    try {
+
+        requirePermission(
+            "paymentHistory.read"
+        );
+
+
+        await loadPaymentHistory();
+
+
+        renderPaymentHistoryMonthSelect();
+
+
+        if (
+            selectedPaymentHistoryMonth
+        ) {
+
+            renderPaymentHistoryKPIs(
+                selectedPaymentHistoryMonth
+            );
+
+
+            renderPaymentHistoryCustomers(
+                selectedPaymentHistoryMonth
+            );
+
+        }
+
+
+        renderPaymentHistoryMonthlyTable();
+
+
+        renderPaymentHistoryChart();
+
+
+    } catch (error) {
+
+        console.error(
+            "Payment History:",
+            error
+        );
+
+
+        alert(
+            `Could not load payment history: ${
+                firebaseErrorMessage(
+                    error
+                )
+            }`
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   MONTH SELECT EVENT
+   ========================================================= */
+
+document.addEventListener(
+    "change",
+    function (event) {
+
+        if (
+            event.target?.id !==
+            "paymentHistoryMonth"
+        ) {
+
+            return;
+
+        }
+
+
+        selectPaymentHistoryMonth(
+            event.target.value
+        );
+
+    }
+);
+
+
+/* =========================================================
+   SIMPLE MONTHLY CHART
+   ========================================================= */
+
+function renderPaymentHistoryChart() {
+
+    const container =
+        $("paymentHistoryChart");
+
+
+    if (!container) {
+        return;
+    }
+
+
+    const months =
+        Object.keys(
+            paymentHistory
+        )
+            .sort()
+            .slice(-8);
+
+
+    if (
+        months.length === 0
+    ) {
+
+        container.innerHTML = `
+            <div class="ph-chart-empty">
+                No monthly data available.
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    const maxValue =
+        Math.max(
+            ...months.map(
+                month => {
+
+                    return Math.max(
+
+                        getPaymentHistoryRevenue(
+                            month
+                        ),
+
+                        getExpensesForMonth(
+                            month
+                        ),
+
+                        1
+
+                    );
+
+                }
+            )
+        );
+
+
+    container.innerHTML = `
+
+        <div class="ph-chart">
+
+            ${
+                months
+                    .map(
+                        month => {
+
+                            const revenue =
+                                getPaymentHistoryRevenue(
+                                    month
+                                );
+
+
+                            const expense =
+                                getExpensesForMonth(
+                                    month
+                                );
+
+
+                            const revenueHeight =
+                                Math.max(
+                                    5,
+                                    (
+                                        revenue /
+                                        maxValue
+                                    ) *
+                                    100
+                                );
+
+
+                            const expenseHeight =
+                                Math.max(
+                                    5,
+                                    (
+                                        expense /
+                                        maxValue
+                                    ) *
+                                    100
+                                );
+
+
+                            return `
+
+                                <div class="ph-chart-column">
+
+                                    <div class="ph-chart-values">
+
+                                        <span>
+                                            ${formatCurrency(
+                                                revenue
+                                            )}
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="ph-bars">
+
+                                        <div
+                                            class="ph-bar revenue"
+                                            style="
+                                                height:${revenueHeight}%;
+                                            "
+                                            title="Revenue ${formatCurrency(revenue)}"
+                                        ></div>
+
+
+                                        <div
+                                            class="ph-bar expense"
+                                            style="
+                                                height:${expenseHeight}%;
+                                            "
+                                            title="Expenses ${formatCurrency(expense)}"
+                                        ></div>
+
+                                    </div>
+
+
+                                    <span class="ph-chart-label">
+
+                                        ${escapeHTML(
+                                            formatMonthLabel(
+                                                month
+                                            )
+                                        )}
+
+                                    </span>
+
+                                </div>
+
+                            `;
+
+                        }
+                    )
+                    .join("")
+            }
+
+        </div>
+
+
+        <div class="ph-chart-legend">
+
+            <span>
+                <i class="ph-legend revenue"></i>
+                Revenue
+            </span>
+
+            <span>
+                <i class="ph-legend expense"></i>
+                Expenses
+            </span>
+
+        </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   EXPORT PAYMENT HISTORY CSV
+   ========================================================= */
+
+function exportPaymentHistoryCSV() {
+
+    requirePermission(
+        "paymentHistory.read"
+    );
+
+
+    const rows = [
+
+        [
+            "Month",
+            "Paid Clients",
+            "Revenue",
+            "Expenses",
+            "Profit",
+            "Payment Rate"
+        ]
+
+    ];
+
+
+    Object.keys(
+        paymentHistory
+    )
+        .sort()
+        .reverse()
+        .forEach(
+            monthKey => {
+
+                const revenue =
+                    getPaymentHistoryRevenue(
+                        monthKey
+                    );
+
+
+                const expense =
+                    getExpensesForMonth(
+                        monthKey
+                    );
+
+
+                const profit =
+                    revenue -
+                    expense;
+
+
+                const records =
+                    getPaymentHistoryRecords(
+                        monthKey
+                    );
+
+
+                const rate =
+                    getPaymentRateForMonth(
+                        monthKey
+                    );
+
+
+                rows.push([
+
+                    formatMonthLabel(
+                        monthKey
+                    ),
+
+                    records.length,
+
+                    revenue.toFixed(2),
+
+                    expense.toFixed(2),
+
+                    profit.toFixed(2),
+
+                    `${rate}%`
+
+                ]);
+
+            }
+        );
+
+
+    const csv =
+        rows
+            .map(
+                row =>
+                    row
+                        .map(
+                            value =>
+                                `"${String(
+                                    value
+                                )
+                                    .replaceAll(
+                                        '"',
+                                        '""'
+                                    )}"`
+                        )
+                        .join(",")
+            )
+            .join("\n");
+
+
+    const blob =
+        new Blob(
+            [csv],
+            {
+                type:
+                    "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+
+    link.href =
+        url;
+
+
+    link.download =
+        `Payment_History_${new Date()
+            .toISOString()
+            .slice(
+                0,
+                10
+            )}.csv`;
+
+
+    document.body.appendChild(
+        link
+    );
+
+
+    link.click();
+
+
+    document.body.removeChild(
+        link
+    );
+
+
+    URL.revokeObjectURL(
+        url
+    );
+
 }
 /* =========================================================
    CUSTOMER CRUD — FIRESTORE + STORAGE
@@ -4655,143 +6201,314 @@ function deleteHistory(month) {
    NAVIGATION
    ========================================================= */
 
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
 function openTab(tabName) {
-    // =========================
-    // Permission check
-    // =========================
-    if (tabName === "users" && !hasPermission("users.manage")) {
+
+    /* =====================================================
+       PERMISSIONS
+       ===================================================== */
+
+    if (
+        tabName === "users" &&
+        !hasPermission("users.manage")
+    ) {
+
         showToast("Access denied");
+
         return;
     }
 
-    if (tabName === "finance" && !canAccessExpenses()) {
+
+    if (
+        tabName === "finance" &&
+        !canAccessExpenses()
+    ) {
+
         showToast("Access denied");
+
         return;
     }
 
-    // =========================
-    // Hide all pages safely
-    // =========================
+
+    if (
+        tabName === "paymentHistory" &&
+        !hasPermission("paymentHistory.read")
+    ) {
+
+        showToast("Access denied");
+
+        return;
+    }
+
+
+    /* =====================================================
+       HIDE ALL PAGES
+       ===================================================== */
+
     const pages = [
+
         "residentsPage",
+
         "requestsPage",
+
         "financePage",
+
         "paidClientsPage",
+
+        "paymentHistoryPage",
+
         "usersPage"
+
     ];
 
+
     pages.forEach(id => {
-        const page = document.getElementById(id);
+
+        const page =
+            document.getElementById(id);
 
         if (page) {
-            page.style.display = "none";
+
+            page.style.display =
+                "none";
+
         }
+
     });
 
-    // =========================
-    // Remove active from tabs
-    // =========================
-    document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.classList.remove("active");
-    });
 
-    // =========================
-    // Show selected page
-    // =========================
+    /* =====================================================
+       REMOVE ACTIVE TAB
+       ===================================================== */
+
+    document
+        .querySelectorAll(".tab-btn")
+        .forEach(btn => {
+
+            btn.classList.remove(
+                "active"
+            );
+
+        });
+
+
+    /* =====================================================
+       DETERMINE PAGE
+       ===================================================== */
+
     let pageId = null;
+
 
     switch (tabName) {
 
         case "residents":
-            pageId = "residentsPage";
+
+            pageId =
+                "residentsPage";
+
             break;
+
 
         case "requests":
-            pageId = "requestsPage";
 
-            if (typeof loadRequests === "function") {
+            pageId =
+                "requestsPage";
+
+            if (
+                typeof loadRequests ===
+                "function"
+            ) {
+
                 loadRequests();
+
             }
 
             break;
+
 
         case "finance":
-            pageId = "financePage";
+
+            pageId =
+                "financePage";
+
             break;
+
 
         case "paidClients":
-            pageId = "paidClientsPage";
+
+            pageId =
+                "paidClientsPage";
+
             break;
+
+
+        case "paymentHistory":
+
+            pageId =
+                "paymentHistoryPage";
+
+            break;
+
 
         case "users":
-            pageId = "usersPage";
+
+            pageId =
+                "usersPage";
+
 
             if (!isAdminRole()) {
-                showToast("Access denied");
+
+                showToast(
+                    "Access denied"
+                );
+
                 return;
+
             }
 
-            if (typeof loadUsers === "function") {
+
+            if (
+                typeof loadUsers ===
+                "function"
+            ) {
+
                 loadUsers();
+
             }
 
             break;
 
+
         default:
-            console.warn("Unknown tab:", tabName);
+
+            console.warn(
+                "Unknown tab:",
+                tabName
+            );
+
             return;
+
     }
-    // =========================
-    // Display selected page
-    // =========================
-    const selectedPage = document.getElementById(pageId);
+
+
+    /* =====================================================
+       DISPLAY PAGE
+       ===================================================== */
+
+    const selectedPage =
+        document.getElementById(
+            pageId
+        );
+
 
     if (!selectedPage) {
+
         console.error(
             `openTab(): Element #${pageId} was not found in the HTML.`
         );
+
         return;
+
     }
 
-    selectedPage.style.display = "block";
 
-    // =========================
-    // Set active button
-    // =========================
-    const activeButton = document.querySelector(
-        `.tab-btn[onclick*="openTab('${tabName}')"]`
-    );
+    selectedPage.style.display =
+        "block";
+
+
+    /* =====================================================
+       ACTIVE BUTTON
+       ===================================================== */
+
+    const activeButton =
+        document.querySelector(
+            `.tab-btn[onclick*="openTab('${tabName}')"]`
+        );
+
 
     if (activeButton) {
-        activeButton.classList.add("active");
+
+        activeButton.classList.add(
+            "active"
+        );
+
     }
 
-    // =========================
-    // Refresh specific content
-    // =========================
-    if (tabName === "finance") {
-        if (typeof renderExpenses === "function") {
+
+    /* =====================================================
+       REFRESH CONTENT
+       ===================================================== */
+
+    if (
+        tabName === "finance"
+    ) {
+
+        if (
+            typeof renderExpenses ===
+            "function"
+        ) {
+
             renderExpenses();
+
         }
 
-        if (typeof updateFinanceKPIs === "function") {
+
+        if (
+            typeof updateFinanceKPIs ===
+            "function"
+        ) {
+
             updateFinanceKPIs();
+
         }
+
     }
 
-    if (tabName === "paidClients") {
-        if (typeof renderPaidClients === "function") {
+
+    if (
+        tabName === "paidClients"
+    ) {
+
+        if (
+            typeof renderPaidClients ===
+            "function"
+        ) {
+
             renderPaidClients();
+
         }
+
     }
 
-    if (tabName === "users") {
-        if (typeof renderUsers === "function") {
+
+    if (
+        tabName === "paymentHistory"
+    ) {
+
+        refreshPaymentHistoryDashboard();
+
+    }
+
+
+    if (
+        tabName === "users"
+    ) {
+
+        if (
+            typeof renderUsers ===
+            "function"
+        ) {
+
             renderUsers();
-        }
-    }
-}
 
+        }
+
+    }
+
+}
 /* =========================================================
    EXPENSES — FIRESTORE
    ========================================================= */
@@ -10058,4 +11775,3 @@ function showToast(message, type = "error") {
         toast.remove();
     }, 4000);
 }
-
