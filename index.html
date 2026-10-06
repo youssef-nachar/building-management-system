@@ -285,7 +285,14 @@
         </svg>
         <span>Requests</span>
     </button>
-
+<button
+    class="tab-btn"
+    onclick="openTab('paymentHistory')"
+    data-payment-history-only
+>
+    <i class="fa-solid fa-clock-rotate-left"></i>
+    <span>Payment History</span>
+</button>
 </div>
 
         <!-- =====================================================
@@ -1345,12 +1352,6 @@
                 </div>
 
 
-                <button class="history-btn" data-payment-history-only onclick="showHistory()">
-
-                    📄 Payment History
-
-                </button>
-
 
             </section>
 
@@ -2000,7 +2001,394 @@
 
         </div>
 
+<!-- =========================================================
+     PAYMENT HISTORY PAGE
+     ========================================================= -->
+<section
+    id="paymentHistoryPage"
+    class="page-section payment-history-page"
+    style="display:none;"
+    data-payment-history-only
+>
 
+    <div class="ph-header">
+
+        <div>
+            <div class="ph-eyebrow">
+                <i class="fa-solid fa-chart-line"></i>
+                FINANCIAL ANALYTICS
+            </div>
+
+            <h1>
+                Payment History
+            </h1>
+
+            <p>
+                Monthly revenue, expenses, profit and paid residents
+            </p>
+        </div>
+
+        <div class="ph-header-actions">
+
+            <button
+                class="ph-btn ph-btn-secondary"
+                type="button"
+                onclick="exportPaymentHistoryCSV()"
+            >
+                <i class="fa-solid fa-file-csv"></i>
+                Export CSV
+            </button>
+
+            <button
+                class="ph-btn ph-btn-primary"
+                type="button"
+                onclick="refreshPaymentHistoryDashboard()"
+            >
+                <i class="fa-solid fa-rotate"></i>
+                Refresh
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         MONTH SELECTOR
+         ===================================================== -->
+
+    <div class="ph-toolbar">
+
+        <div class="ph-month-selector">
+
+            <div class="ph-toolbar-icon">
+                <i class="fa-regular fa-calendar"></i>
+            </div>
+
+            <div>
+                <label for="paymentHistoryMonth">
+                    Selected Month
+                </label>
+
+                <select id="paymentHistoryMonth">
+                </select>
+            </div>
+
+        </div>
+
+
+        <div class="ph-search-box">
+
+            <i class="fa-solid fa-magnifying-glass"></i>
+
+            <input
+                type="text"
+                id="paymentHistorySearch"
+                placeholder="Search paid customer..."
+                oninput="filterPaymentHistoryCustomers()"
+            >
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         KPI CARDS
+         ===================================================== -->
+
+    <div class="ph-kpi-grid">
+
+        <div class="ph-kpi ph-kpi-revenue">
+
+            <div class="ph-kpi-icon">
+                <i class="fa-solid fa-arrow-trend-up"></i>
+            </div>
+
+            <div class="ph-kpi-content">
+
+                <span>
+                    Revenue
+                </span>
+
+                <strong id="phRevenue">
+                    $0.00
+                </strong>
+
+                <small>
+                    Total collected
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <div class="ph-kpi ph-kpi-expense">
+
+            <div class="ph-kpi-icon">
+                <i class="fa-solid fa-arrow-trend-down"></i>
+            </div>
+
+            <div class="ph-kpi-content">
+
+                <span>
+                    Expenses
+                </span>
+
+                <strong id="phExpenses">
+                    $0.00
+                </strong>
+
+                <small>
+                    Total expenses
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <div class="ph-kpi ph-kpi-profit">
+
+            <div class="ph-kpi-icon">
+                <i class="fa-solid fa-wallet"></i>
+            </div>
+
+            <div class="ph-kpi-content">
+
+                <span>
+                    Net Profit
+                </span>
+
+                <strong id="phProfit">
+                    $0.00
+                </strong>
+
+                <small>
+                    Revenue − Expenses
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <div class="ph-kpi ph-kpi-customers">
+
+            <div class="ph-kpi-icon">
+                <i class="fa-solid fa-users"></i>
+            </div>
+
+            <div class="ph-kpi-content">
+
+                <span>
+                    Paid Clients
+                </span>
+
+                <strong id="phPaidClients">
+                    0
+                </strong>
+
+                <small id="phPaymentRate">
+                    0% payment rate
+                </small>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         MONTHLY SUMMARY
+         ===================================================== -->
+
+    <div class="ph-section-card">
+
+        <div class="ph-section-header">
+
+            <div>
+                <h2>
+                    <i class="fa-solid fa-chart-column"></i>
+                    Monthly Financial Overview
+                </h2>
+
+                <p>
+                    Revenue, expenses and profit by month
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="ph-monthly-chart">
+
+            <div id="paymentHistoryChart">
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         MONTHLY TABLE
+         ===================================================== -->
+
+    <div class="ph-section-card">
+
+        <div class="ph-section-header">
+
+            <div>
+                <h2>
+                    <i class="fa-solid fa-table"></i>
+                    Monthly Summary
+                </h2>
+
+                <p>
+                    Complete financial history
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="ph-table-wrapper">
+
+            <table class="ph-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Month
+                        </th>
+
+                        <th>
+                            Paid Clients
+                        </th>
+
+                        <th>
+                            Revenue
+                        </th>
+
+                        <th>
+                            Expenses
+                        </th>
+
+                        <th>
+                            Profit
+                        </th>
+
+                        <th>
+                            Payment Rate
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="paymentHistoryMonthlyBody">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         PAID CUSTOMERS
+         ===================================================== -->
+
+    <div class="ph-section-card">
+
+        <div class="ph-section-header">
+
+            <div>
+
+                <h2>
+                    <i class="fa-solid fa-circle-check"></i>
+                    Paid Customers
+                </h2>
+
+                <p id="phSelectedMonthLabel">
+                    Selected month
+                </p>
+
+            </div>
+
+            <div class="ph-paid-count-badge">
+
+                <span id="phSelectedPaidCount">
+                    0
+                </span>
+
+                Paid
+
+            </div>
+
+        </div>
+
+
+        <div class="ph-table-wrapper">
+
+            <table class="ph-table ph-customers-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Customer
+                        </th>
+
+                        <th>
+                            Phone
+                        </th>
+
+                        <th>
+                            Location
+                        </th>
+
+                        <th>
+                            Bed
+                        </th>
+
+                        <th>
+                            Payment
+                        </th>
+
+                        <th>
+                            Paid Date
+                        </th>
+
+                        <th>
+                            Amount
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="paymentHistoryCustomersBody">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</section>
 
         <!-- =====================================================
              CUSTOMER MODAL
