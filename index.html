@@ -1684,326 +1684,6 @@
             </div>
 
         </div>
-
-
-
-        <!-- =====================================================
-             PAID CLIENTS
-        ====================================================== -->
-
-        <div id="paidClientsPage" style="display:none;">
-
-
-            <div class="finance-container paid-enterprise-container">
-
-
-                <div class="paid-header">
-
-
-                    <div class="paid-title-group">
-
-                        <div class="status-indicator-dot"></div>
-
-                        <div>
-
-                            <h2>
-                                Paid Clients Directory
-                            </h2>
-
-                            <p class="paid-subtitle">
-                                Real-time overview of active tenants
-                                with verified monthly settlements
-                            </p>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="export-actions-group">
-
-
-                        <button class="btn-secondary-export" onclick="exportPaidToCSV()">
-
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-
-                                <polyline points="7 10 12 15 17 10" />
-
-                                <line x1="12" y1="15" x2="12" y2="3" />
-
-                            </svg>
-
-                            <span>
-                                Export CSV
-                            </span>
-
-                        </button>
-
-
-                        <button class="btn-primary-print" onclick="window.print()">
-
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-
-                                <polyline points="6 9 6 2 18 2 18 9" />
-
-                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-
-                                <rect x="6" y="14" width="12" height="8" />
-
-                            </svg>
-
-                            <span>
-                                Print Report
-                            </span>
-
-                        </button>
-
-
-                    </div>
-
-                </div>
-
-
-
-                <div class="paid-kpi-grid">
-
-
-                    <div class="paid-kpi-card">
-
-
-                        <div class="kpi-icon-wrapper green-bg">
-
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a"
-                                stroke-width="2">
-
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-
-                                <circle cx="9" cy="7" r="4" />
-
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-
-                            </svg>
-
-                        </div>
-
-
-                        <div class="kpi-details">
-
-                            <span class="kpi-label">
-                                Paid Tenants
-                            </span>
-
-                            <h1 id="paidClientsCount" class="kpi-value">
-
-                                0
-
-                            </h1>
-
-                        </div>
-
-
-                    </div>
-
-
-
-                    <div class="paid-kpi-card" id="paidClientsRevenueCard" data-paid-revenue-only>
-
-
-                        <div class="kpi-icon-wrapper emerald-bg">
-
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669"
-                                stroke-width="2">
-
-                                <line x1="12" y1="1" x2="12" y2="23" />
-
-                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-
-                            </svg>
-
-                        </div>
-
-
-                        <div class="kpi-details">
-
-                            <span class="kpi-label">
-                                Collected Revenue
-                            </span>
-
-                            <h1 id="paidClientsTotalRev" class="kpi-value text-emerald">
-
-                                $0
-
-                            </h1>
-
-                        </div>
-
-
-                    </div>
-
-
-
-                    <div class="paid-kpi-card">
-
-
-                        <div class="kpi-icon-wrapper blue-bg">
-
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb"
-                                stroke-width="2">
-
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-
-                                <polyline points="22 4 12 14.01 9 11.01" />
-
-                            </svg>
-
-                        </div>
-
-
-                        <div class="kpi-details">
-
-                            <span class="kpi-label">
-                                Settlement Rate
-                            </span>
-
-                            <h1 id="paidRatePercentage" class="kpi-value">
-
-                                0%
-
-                            </h1>
-
-                        </div>
-
-
-                    </div>
-
-
-                </div>
-
-
-
-                <div class="paid-filter-toolbar">
-
-
-                    <div class="paid-search-input-wrapper">
-
-                        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8"
-                            stroke-width="2">
-
-                            <circle cx="11" cy="11" r="8" />
-
-                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-
-                        </svg>
-
-
-                        <input id="paidSearchInput" type="text"
-                            placeholder="Search by tenant name, phone, floor, or room..." oninput="filterPaidClients()">
-
-                    </div>
-
-
-                    <div class="floor-filter-select-wrapper">
-
-                        <select id="paidFloorFilter" onchange="filterPaidClients()">
-
-                            <option value="all">
-                                All Floors
-                            </option>
-
-                            <option value="1">
-                                Floor 1
-                            </option>
-
-                            <option value="2">
-                                Floor 2
-                            </option>
-
-                            <option value="3">
-                                Floor 3
-                            </option>
-
-                            <option value="4">
-                                Floor 4
-                            </option>
-
-                            <option value="5">
-                                Floor 5
-                            </option>
-
-                            <option value="6">
-                                Floor 6
-                            </option>
-
-                        </select>
-
-                    </div>
-
-
-                </div>
-
-
-
-                <div class="paid-table-card">
-
-
-                    <table class="paid-table">
-
-
-                        <thead>
-
-                            <tr>
-
-                                <th>
-                                    Client Details
-                                </th>
-
-                                <th>
-                                    Contact Phone
-                                </th>
-
-                                <th>
-                                    Parent Contact
-                                </th>
-
-                                <th>
-                                    Location
-                                </th>
-
-                                <th>
-                                    Bed No.
-                                </th>
-
-                                <th>
-                                    Status
-                                </th>
-
-                            </tr>
-
-                        </thead>
-
-
-                        <tbody id="paidClientsBody"></tbody>
-
-
-                    </table>
-
-
-                </div>
-
-
-            </div>
-
-        </div>
-
-<!-- =========================================================
-     PAYMENT HISTORY PAGE
-     ========================================================= -->
 <section
     id="paymentHistoryPage"
     class="page-section payment-history-page"
@@ -2390,9 +2070,321 @@
 
 </section>
 
+
+
         <!-- =====================================================
-             CUSTOMER MODAL
+             PAID CLIENTS
         ====================================================== -->
+
+        <div id="paidClientsPage" style="display:none;">
+
+
+            <div class="finance-container paid-enterprise-container">
+
+
+                <div class="paid-header">
+
+
+                    <div class="paid-title-group">
+
+                        <div class="status-indicator-dot"></div>
+
+                        <div>
+
+                            <h2>
+                                Paid Clients Directory
+                            </h2>
+
+                            <p class="paid-subtitle">
+                                Real-time overview of active tenants
+                                with verified monthly settlements
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="export-actions-group">
+
+
+                        <button class="btn-secondary-export" onclick="exportPaidToCSV()">
+
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+
+                                <polyline points="7 10 12 15 17 10" />
+
+                                <line x1="12" y1="15" x2="12" y2="3" />
+
+                            </svg>
+
+                            <span>
+                                Export CSV
+                            </span>
+
+                        </button>
+
+
+                        <button class="btn-primary-print" onclick="window.print()">
+
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+
+                                <polyline points="6 9 6 2 18 2 18 9" />
+
+                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+
+                                <rect x="6" y="14" width="12" height="8" />
+
+                            </svg>
+
+                            <span>
+                                Print Report
+                            </span>
+
+                        </button>
+
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="paid-kpi-grid">
+
+
+                    <div class="paid-kpi-card">
+
+
+                        <div class="kpi-icon-wrapper green-bg">
+
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a"
+                                stroke-width="2">
+
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+
+                                <circle cx="9" cy="7" r="4" />
+
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+
+                            </svg>
+
+                        </div>
+
+
+                        <div class="kpi-details">
+
+                            <span class="kpi-label">
+                                Paid Tenants
+                            </span>
+
+                            <h1 id="paidClientsCount" class="kpi-value">
+
+                                0
+
+                            </h1>
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <div class="paid-kpi-card" id="paidClientsRevenueCard" data-paid-revenue-only>
+
+
+                        <div class="kpi-icon-wrapper emerald-bg">
+
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                stroke-width="2">
+
+                                <line x1="12" y1="1" x2="12" y2="23" />
+
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+
+                            </svg>
+
+                        </div>
+
+
+                        <div class="kpi-details">
+
+                            <span class="kpi-label">
+                                Collected Revenue
+                            </span>
+
+                            <h1 id="paidClientsTotalRev" class="kpi-value text-emerald">
+
+                                $0
+
+                            </h1>
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <div class="paid-kpi-card">
+
+
+                        <div class="kpi-icon-wrapper blue-bg">
+
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb"
+                                stroke-width="2">
+
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+
+                                <polyline points="22 4 12 14.01 9 11.01" />
+
+                            </svg>
+
+                        </div>
+
+
+                        <div class="kpi-details">
+
+                            <span class="kpi-label">
+                                Settlement Rate
+                            </span>
+
+                            <h1 id="paidRatePercentage" class="kpi-value">
+
+                                0%
+
+                            </h1>
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <div class="paid-filter-toolbar">
+
+
+                    <div class="paid-search-input-wrapper">
+
+                        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8"
+                            stroke-width="2">
+
+                            <circle cx="11" cy="11" r="8" />
+
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+
+                        </svg>
+
+
+                        <input id="paidSearchInput" type="text"
+                            placeholder="Search by tenant name, phone, floor, or room..." oninput="filterPaidClients()">
+
+                    </div>
+
+
+                    <div class="floor-filter-select-wrapper">
+
+                        <select id="paidFloorFilter" onchange="filterPaidClients()">
+
+                            <option value="all">
+                                All Floors
+                            </option>
+
+                            <option value="1">
+                                Floor 1
+                            </option>
+
+                            <option value="2">
+                                Floor 2
+                            </option>
+
+                            <option value="3">
+                                Floor 3
+                            </option>
+
+                            <option value="4">
+                                Floor 4
+                            </option>
+
+                            <option value="5">
+                                Floor 5
+                            </option>
+
+                            <option value="6">
+                                Floor 6
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <div class="paid-table-card">
+
+
+                    <table class="paid-table">
+
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Client Details
+                                </th>
+
+                                <th>
+                                    Contact Phone
+                                </th>
+
+                                <th>
+                                    Parent Contact
+                                </th>
+
+                                <th>
+                                    Location
+                                </th>
+
+                                <th>
+                                    Bed No.
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody id="paidClientsBody"></tbody>
+
+
+                    </table>
+
+
+                </div>
+
+
+            </div>
+
+        </div>
 
         <div id="customerModal" class="modal">
 
