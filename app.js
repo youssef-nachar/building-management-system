@@ -7246,7 +7246,7 @@ function renderPaidClients() {
 
                             <strong
                                 style="
-                                    color:#0f172a;
+                                    color:white;
                                     font-size:14px;
                                 "
                             >
